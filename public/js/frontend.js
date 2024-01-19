@@ -60,6 +60,7 @@ socket.on('updatePlayers', (backEndPlayers) => {
 	}
 })
 
+// Animate Canvas and Entities
 let animationId
 function animate() {
 	animationId = requestAnimationFrame(animate)
@@ -68,7 +69,7 @@ function animate() {
 
 	for (const id in frontEndPlayers) {
 		const frontEndPlayer = frontEndPlayers[id]
-
+		
 		// linear interpolation
 		if (frontEndPlayer.target) {
 			frontEndPlayers[id].x +=
@@ -102,6 +103,12 @@ const SPEED = 5
 const playerInputs = []
 let sequenceNumber = 0
 setInterval(() => {
+
+	// Listen to server (processServerMessages (updatePlayers))
+	// Process Inputs
+	// Interpolate other entities
+	// Render the world (window.requestAnimationFrame(animate))
+
 	if (keys.w.pressed) {
 		sequenceNumber++
 		playerInputs.push({ sequenceNumber, dx: 0, dy: -SPEED })
@@ -124,7 +131,7 @@ setInterval(() => {
 	}
 
 	if (keys.d.pressed) {
-		sequenceNumber++
+		sequenceNumber++;
 		playerInputs.push({ sequenceNumber, dx: SPEED, dy: 0 })
 		// frontEndPlayers[socket.id].x += SPEED
 		socket.emit('keydown', { keycode: 'KeyD', sequenceNumber })
@@ -174,3 +181,7 @@ window.addEventListener('keyup', (event) => {
 			break
 	}
 })
+
+function lerp(a, b, alpha) {
+	return a + alpha * (b - a);
+}

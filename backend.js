@@ -72,21 +72,21 @@ io.on('connection', (socket) => {
 		}
 
 		const playerSides = {
-			left: backEndPlayer.x - backEndPlayer.width/2,
-			right: backEndPlayer.x + backEndPlayer.width/2,
-			top: backEndPlayer.y - backEndPlayer.height/2,
-			bottom: backEndPlayer.y + backEndPlayer.height/2
+			left: backEndPlayer.x,
+			right: backEndPlayer.x + backEndPlayer.width,
+			top: backEndPlayer.y,
+			bottom: backEndPlayer.y + backEndPlayer.height
 		}
 
-		if (playerSides.left < 0) backEndPlayers[socket.id].x = backEndPlayer.width/2
+		if (playerSides.left < 0) backEndPlayers[socket.id].x = 0
 
 		if (playerSides.right > 1024)
-			backEndPlayers[socket.id].x = 1024 - backEndPlayer.width/2
+			backEndPlayers[socket.id].x = 1024 - backEndPlayer.width
 
-		if (playerSides.top < 0) backEndPlayers[socket.id].y = backEndPlayer.height/2
+		if (playerSides.top < 0) backEndPlayers[socket.id].y = 0
 
 		if (playerSides.bottom > 576) {
-			backEndPlayers[socket.id].y = 576 - backEndPlayer.height/2
+			backEndPlayers[socket.id].y = 576 - backEndPlayer.height
 			gravity = 0
 		}
 	})
@@ -94,6 +94,9 @@ io.on('connection', (socket) => {
 
 // backend ticker
 setInterval(() => {
+
+	// process input from clients
+	// send world state
 	io.emit('updatePlayers', backEndPlayers)
 }, 15)
 
