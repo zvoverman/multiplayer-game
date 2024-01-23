@@ -15,15 +15,21 @@ const y = canvas.height / 2
 
 const frontEndPlayers = {}
 
+const GRAVITY_CONSTANT = 0.1;
+var gravity = 0;
+var canJump = false
+
 socket.on('updatePlayers', (backEndPlayers) => {
 	for (const id in backEndPlayers) {
 		const backEndPlayer = backEndPlayers[id]
 
-		// If player doesn't exist on frontend, create player from backend
+		// If this is the first time we see this entity, create a local representation.
 		if (!frontEndPlayers[id]) {
 			frontEndPlayers[id] = new Player({
 				x: backEndPlayer.x,
 				y: backEndPlayer.y,
+				dx: backEndPlayer.dx,
+				dy: backEndPlayer.dy,
 				width: backEndPlayer.width,
 				height: backEndPlayer.height,
 				color: backEndPlayer.color,
@@ -31,24 +37,54 @@ socket.on('updatePlayers', (backEndPlayers) => {
 
 		} else {
 
-			frontEndPlayers[id].target = {
-				x: backEndPlayer.x,
-				y: backEndPlayer.y
-			}
-
 			if (id === socket.id) {
-				const lastBackendInputIndex = playerInputs.findIndex((input) => {
-					return backEndPlayer.sequenceNumber === input.sequenceNumber
-				})
+				// Received the authoritative position of this client's entity.
+				frontEndPlayers[id].x = backEndPlayer.x
+				frontEndPlayers[id].y = backEndPlayer.y
 
-				if (lastBackendInputIndex > -1)
-					playerInputs.splice(0, lastBackendInputIndex + 1)
+				frontEndPlayers[id].dx = backEndPlayer.dx
+				frontEndPlayers[id].dy = backEndPlayer.dy
 
-				playerInputs.forEach((input) => {
-					frontEndPlayers[id].target.x += input.dx
-					frontEndPlayers[id].target.y += input.dy
-				})
+				// Server Reconciliation. Re-apply all the inputs not yet processed by the server.
+
+				frontEndPlayers[id].target = {
+					x: backEndPlayer.x,
+					y: backEndPlayer.y
+				}
+
+				server_reconciliation = true
+				if (server_reconciliation) {
+					// Server Reconciliation. Re-apply all the inputs not yet processed by the server.
+					var j = 0;
+					while (j < playerInputs.length) {
+						let input = playerInputs[j]
+						if (input.sequenceNumber <= backEndPlayer.sequenceNumber) {
+							// Already processed. Its effect is already taken into account into the world update
+							// we just got, so we can drop it.
+							playerInputs.shift()
+						} else {
+							// Not processed by the server yet. Re-apply it.
+							console.log(input)
+							applyInput(frontEndPlayers[id], input);
+							j++;
+						}
+					}
+				} else {
+					// Reconciliation is disabled, so drop all the saved inputs.
+					playerInputs = [];
+				}
+			} else {
+				// Received the position of an entity other than this client's.
+				// Entity interpolation is disabled - just accept the server's position.
+				frontEndPlayers[id].x = backEndPlayer.x
+				frontEndPlayers[id].y = backEndPlayer.y
+
+				frontEndPlayers[id].dx = backEndPlayer.dx
+				frontEndPlayers[id].dy = backEndPlayer.dy
 			}
+
+			//console.log("x: " + frontEndPlayers[id].x + ", y: " + frontEndPlayers[id].y)
+
 		}
 	}
 
@@ -60,29 +96,24 @@ socket.on('updatePlayers', (backEndPlayers) => {
 	}
 })
 
+function applyInput (frontEndPlayer, input) {
+	frontEndPlayer.x += frontEndPlayer.dx * input.delta_time
+	frontEndPlayer.y += frontEndPlayer.dy * input.delta_time
+}
+
 // Animate Canvas and Entities
 let animationId
 function animate() {
-	animationId = requestAnimationFrame(animate)
+	//animationId = requestAnimationFrame(animate)
 	// c.fillStyle = 'rgba(0, 0, 0, 0.1)'
 	c.clearRect(0, 0, canvas.width, canvas.height)
 
 	for (const id in frontEndPlayers) {
 		const frontEndPlayer = frontEndPlayers[id]
-		
-		// linear interpolation
-		if (frontEndPlayer.target) {
-			frontEndPlayers[id].x +=
-				(frontEndPlayers[id].target.x - frontEndPlayers[id].x) * 0.5
-			frontEndPlayers[id].y +=
-				(frontEndPlayers[id].target.y - frontEndPlayers[id].y) * 0.5
-		}
 
 		frontEndPlayer.draw()
 	}
 }
-
-animate()
 
 const keys = {
 	w: {
@@ -99,89 +130,103 @@ const keys = {
 	}
 }
 
-const SPEED = 5
-const playerInputs = []
+const SPEED = 500
+let playerInputs = []
 let sequenceNumber = 0
 setInterval(() => {
+	if (!frontEndPlayers[socket.id]) return
 
-	// Listen to server (processServerMessages (updatePlayers))
-	// Process Inputs
-	// Interpolate other entities
-	// Render the world (window.requestAnimationFrame(animate))
-
-	if (keys.w.pressed) {
-		sequenceNumber++
-		playerInputs.push({ sequenceNumber, dx: 0, dy: -SPEED })
-		// frontEndPlayers[socket.id].y -= SPEED
-		socket.emit('keydown', { keycode: 'KeyW', sequenceNumber })
+	if (frontEndPlayers[socket.id].dy === 0) {
+		keys.w.pressed = false;
 	}
 
-	if (keys.a.pressed) {
-		sequenceNumber++
-		playerInputs.push({ sequenceNumber, dx: -SPEED, dy: 0 })
-		// frontEndPlayers[socket.id].x -= SPEED
-		socket.emit('keydown', { keycode: 'KeyA', sequenceNumber })
-	}
+	//console.log(frontEndPlayers[socket.id])
 
-	if (keys.s.pressed) {
-		sequenceNumber++
-		playerInputs.push({ sequenceNumber, dx: 0, dy: SPEED })
-		// frontEndPlayers[socket.id].y += SPEED
-		socket.emit('keydown', { keycode: 'KeyS', sequenceNumber })
-	}
+	// process server messages -> updatePlayer() currently does this
+	//processServerMessages()
 
-	if (keys.d.pressed) {
-		sequenceNumber++;
-		playerInputs.push({ sequenceNumber, dx: SPEED, dy: 0 })
-		// frontEndPlayers[socket.id].x += SPEED
-		socket.emit('keydown', { keycode: 'KeyD', sequenceNumber })
-	}
+	// process inputs -> Doing this HERE
+	//processInputs()
+
+	// Interpolate other entities -> updatePlayer() currenly does this
+	//interpolateEntities()
+
+	// Render the world -> animate() currently does this
+	requestAnimationFrame(animate)
+
 }, 15)
 
 window.addEventListener('keydown', (event) => {
 	if (!frontEndPlayers[socket.id]) return
 
+	input = { timeStamp: +new Date(), sequenceNumber: sequenceNumber++, id: socket.id, dy: 0, dx: 0 }
+
 	switch (event.code) {
 		case 'KeyW':
-			keys.w.pressed = true
+			if (keys.w.pressed) {
+				return
+			} else {
+				input.event = 'Jump'
+				input.dy = -1
+				keys.w.pressed = true
+			}
 			break
 
 		case 'KeyA':
-			keys.a.pressed = true
-			break
-
-		case 'KeyS':
-			keys.s.pressed = true
+			if (keys.a.pressed) {
+				return
+			} else {
+				input.event = 'Run'
+				input.dx = -1
+				keys.a.pressed = true
+			}
 			break
 
 		case 'KeyD':
-			keys.d.pressed = true
-			break
+			if (keys.d.pressed) {
+				return
+			} else {
+				input.event = 'Run'
+				input.dx = 1
+				keys.d.pressed = true
+				break
+			}
 	}
+
+	// Send input to server
+	socket.emit('sendInput', input)
+	playerInputs.push(input)
 })
 
 window.addEventListener('keyup', (event) => {
 	if (!frontEndPlayers[socket.id]) return
 
-	switch (event.code) {
-		case 'KeyW':
-			keys.w.pressed = false
-			break
+	input = { timeStamp: +new Date(), sequenceNumber: sequenceNumber++, id: socket.id, dy: 0, dx: 0 }
 
+	switch (event.code) {
 		case 'KeyA':
+			if (keys.d.pressed) {
+				input.event = 'Run'
+				input.dx = 1
+			} else {
+				input.event = 'Stop'
+			}
 			keys.a.pressed = false
 			break
 
-		case 'KeyS':
-			keys.s.pressed = false
-			break
-
 		case 'KeyD':
+			if (keys.a.pressed) {
+				input.event = 'Run'
+				input.dx = -1
+			} else {
+				input.event = 'Stop'
+			}
 			keys.d.pressed = false
 			break
 	}
-})
 
-function lerp(a, b, alpha) {
-	return a + alpha * (b - a);
-}
+	// Send input to server
+	if (!input.event) return
+	socket.emit('sendInput', input)
+	playerInputs.push(input)
+})
