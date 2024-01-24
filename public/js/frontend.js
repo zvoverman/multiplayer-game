@@ -19,7 +19,20 @@ const GRAVITY_CONSTANT = 0.1;
 var gravity = 0;
 var canJump = false
 
+function debug_draw(x, y, width, height) {
+	c.beginPath()
+	c.fillStyle = "rgba(0, 255, 255, 0.5)";
+	c.fillRect(this.x, this.y, this.width, this.height)
+	c.restore()
+}
+
 socket.on('updatePlayers', (backEndPlayers) => {
+	// Compute delta time since last update.
+	var now_ts = +new Date()
+	var last_ts = this.last_ts || now_ts;
+	var dt_sec = (now_ts - last_ts) / 1000.0;
+	this.last_ts = now_ts;
+
 	for (const id in backEndPlayers) {
 		const backEndPlayer = backEndPlayers[id]
 
@@ -39,18 +52,16 @@ socket.on('updatePlayers', (backEndPlayers) => {
 
 			if (id === socket.id) {
 				// Received the authoritative position of this client's entity.
-				frontEndPlayers[id].x = backEndPlayer.x
-				frontEndPlayers[id].y = backEndPlayer.y
+				let target_x = backEndPlayer.x
+				let target_y = backEndPlayer.y
+
+				frontEndPlayers[id].x = lerp(frontEndPlayers[id].x, target_x, 0.5)
+				frontEndPlayers[id].y = lerp(frontEndPlayers[id].y, target_y, 0.5)
+
+				console.log("x: %f | %f", frontEndPlayers[id].x, target_x)
 
 				frontEndPlayers[id].dx = backEndPlayer.dx
 				frontEndPlayers[id].dy = backEndPlayer.dy
-
-				// Server Reconciliation. Re-apply all the inputs not yet processed by the server.
-
-				frontEndPlayers[id].target = {
-					x: backEndPlayer.x,
-					y: backEndPlayer.y
-				}
 
 				server_reconciliation = true
 				if (server_reconciliation) {
@@ -65,7 +76,7 @@ socket.on('updatePlayers', (backEndPlayers) => {
 						} else {
 							// Not processed by the server yet. Re-apply it.
 							console.log(input)
-							applyInput(frontEndPlayers[id], input);
+							applyInput(frontEndPlayers[socket.id], dt_sec);
 							j++;
 						}
 					}
@@ -73,6 +84,9 @@ socket.on('updatePlayers', (backEndPlayers) => {
 					// Reconciliation is disabled, so drop all the saved inputs.
 					playerInputs = [];
 				}
+
+				//console.log("x: " + frontEndPlayers[id].x + ", y: " + frontEndPlayers[id].y + ", player: " + frontEndPlayers[id])
+
 			} else {
 				// Received the position of an entity other than this client's.
 				// Entity interpolation is disabled - just accept the server's position.
@@ -96,24 +110,28 @@ socket.on('updatePlayers', (backEndPlayers) => {
 	}
 })
 
-function applyInput (frontEndPlayer, input) {
-	frontEndPlayer.x += frontEndPlayer.dx * input.delta_time
-	frontEndPlayer.y += frontEndPlayer.dy * input.delta_time
+function applyInput(frontEndPlayer, dt_sec) {
+	frontEndPlayer.x += frontEndPlayer.dx * dt_sec
+	frontEndPlayer.y += frontEndPlayer.dy * dt_sec
 }
 
 // Animate Canvas and Entities
 let animationId
 function animate() {
-	//animationId = requestAnimationFrame(animate)
+	animationId = requestAnimationFrame(animate)
 	// c.fillStyle = 'rgba(0, 0, 0, 0.1)'
 	c.clearRect(0, 0, canvas.width, canvas.height)
+
 
 	for (const id in frontEndPlayers) {
 		const frontEndPlayer = frontEndPlayers[id]
 
 		frontEndPlayer.draw()
+
 	}
 }
+
+requestAnimationFrame(animate)
 
 const keys = {
 	w: {
@@ -152,14 +170,14 @@ setInterval(() => {
 	//interpolateEntities()
 
 	// Render the world -> animate() currently does this
-	requestAnimationFrame(animate)
 
 }, 15)
 
 window.addEventListener('keydown', (event) => {
 	if (!frontEndPlayers[socket.id]) return
 
-	input = { timeStamp: +new Date(), sequenceNumber: sequenceNumber++, id: socket.id, dy: 0, dx: 0 }
+	// FIX THE TIMESTAMP
+	input = { sequenceNumber: sequenceNumber++, id: socket.id, dy: 0, dx: 0 }
 
 	switch (event.code) {
 		case 'KeyW':
@@ -193,15 +211,16 @@ window.addEventListener('keydown', (event) => {
 			}
 	}
 
-	// Send input to server
-	socket.emit('sendInput', input)
-	playerInputs.push(input)
+	if (!input.event) return
+	//applyInput(frontEndPlayers[socket.id], input) // Client-side Prediction
+	socket.emit('sendInput', input) // Send input to server
+	playerInputs.push(input) // Save input for Server Reconciliation
 })
 
 window.addEventListener('keyup', (event) => {
 	if (!frontEndPlayers[socket.id]) return
 
-	input = { timeStamp: +new Date(), sequenceNumber: sequenceNumber++, id: socket.id, dy: 0, dx: 0 }
+	input = { sequenceNumber: sequenceNumber++, id: socket.id, dy: 0, dx: 0 }
 
 	switch (event.code) {
 		case 'KeyA':
@@ -227,6 +246,12 @@ window.addEventListener('keyup', (event) => {
 
 	// Send input to server
 	if (!input.event) return
-	socket.emit('sendInput', input)
-	playerInputs.push(input)
+	//applyInput(frontEndPlayers[socket.id], input) // Client-side Prediction
+	socket.emit('sendInput', input) // Send input to server
+	playerInputs.push(input) // Save input for Server Reconciliation
 })
+
+function lerp(a, b, alpha) {
+	if (a > b - 0.01 && a < b + 0.01) return b;
+	return a + alpha * (b - a);
+}

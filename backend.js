@@ -19,8 +19,9 @@ const backEndPlayers = {}
 const inputQueue = []
 
 const SPEED = 500
-const WIDTH = 32;
-const HEIGHT = 64;
+const JUMP_FORCE = 20
+const WIDTH = 64;
+const HEIGHT = 128;
 const GRAVITY_CONSTANT = 5
 
 io.on('connection', (socket) => {
@@ -65,6 +66,8 @@ function applyInput(backEndPlayer, delta_time) {
 
 	backEndPlayer.x += delta_time * backEndPlayer.dx
 	backEndPlayer.y += delta_time * backEndPlayer.dy
+
+	//console.log(backEndPlayer.x + ' ' + backEndPlayer.y)
 }
 
 // backend ticker
@@ -94,7 +97,7 @@ function processInputs(delta_time) {
 			backEndPlayer.sequenceNumber = input.sequenceNumber
 			backEndPlayer.timeStamp = delta_time
 		} else if (input.event === 'Jump') {
-			backEndPlayer.dy = input.dy * SPEED * 2;
+			backEndPlayer.dy = input.dy * SPEED;
 			backEndPlayer.sequenceNumber = input.sequenceNumber
 			backEndPlayer.timeStamp = delta_time
 		} else if (input.event === 'Stop') {
@@ -108,7 +111,7 @@ function processInputs(delta_time) {
 	for (const id in backEndPlayers) {
 		const backEndPlayer = backEndPlayers[id]
 
-		// Move players according to velocity
+		// Move players according to velocitya
 		applyInput(backEndPlayer, delta_time)
 
 		if (backEndPlayer.y + backEndPlayer.height + (backEndPlayer.gravity * delta_time) > backEndPlayer.canvas.height) {
@@ -117,7 +120,8 @@ function processInputs(delta_time) {
 			backEndPlayer.gravity = 0;
 		} else {
 			backEndPlayer.dy += backEndPlayer.gravity
-			backEndPlayer.y += backEndPlayer.gravity * delta_time
+			backEndPlayer.y += backEndPlayer.dy * delta_time
+			backEndPlayer.y -= delta_time
 			backEndPlayer.gravity += GRAVITY_CONSTANT
 		}
 
