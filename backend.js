@@ -38,7 +38,7 @@ io.on('connection', (socket) => {
 		target_dy: 0,
 		width: WIDTH,
 		height: HEIGHT,
-		color: "#black",
+		color: "rgba(0, 0, 255, 1)",
 		sequenceNumber: 0,
 		timeStamp: 0,
 		gravity: 0
@@ -83,7 +83,7 @@ setInterval(() => {
 
 	// send world state
 	io.emit('updatePlayers', backEndPlayers)
-}, 15)
+}, 30)
 
 function processInputs(delta_time) {
 	// Process all inputs in queue

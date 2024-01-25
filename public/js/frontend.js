@@ -19,10 +19,16 @@ const GRAVITY_CONSTANT = 0.1;
 var gravity = 0;
 var canJump = false
 
-function debug_draw(x, y, width, height) {
+let inputsToPredict = []
+
+// for debug
+let previousPositions = []
+
+
+function debug_draw(x, y, width, height, alpha) {
 	c.beginPath()
-	c.fillStyle = "rgba(0, 255, 255, 0.5)";
-	c.fillRect(this.x, this.y, this.width, this.height)
+	c.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+	c.fillRect(x, y, width, height)
 	c.restore()
 }
 
@@ -58,7 +64,16 @@ socket.on('updatePlayers', (backEndPlayers) => {
 				frontEndPlayers[id].x = lerp(frontEndPlayers[id].x, target_x, 0.5)
 				frontEndPlayers[id].y = lerp(frontEndPlayers[id].y, target_y, 0.5)
 
-				console.log("x: %f | %f", frontEndPlayers[id].x, target_x)
+				pos = {
+					x: frontEndPlayers[id].x,
+					y: frontEndPlayers[id].y
+				}
+				previousPositions.push(pos)
+				if (previousPositions.length > 20) {
+					previousPositions.shift()
+				}
+
+				//console.log("x: %f | %f", frontEndPlayers[id].x, target_x)
 
 				frontEndPlayers[id].dx = backEndPlayer.dx
 				frontEndPlayers[id].dy = backEndPlayer.dy
@@ -75,7 +90,8 @@ socket.on('updatePlayers', (backEndPlayers) => {
 							playerInputs.shift()
 						} else {
 							// Not processed by the server yet. Re-apply it.
-							console.log(input)
+							//console.log(input)
+							console.log(input.sequenceNumber - backEndPlayer.sequenceNumber)
 							applyInput(frontEndPlayers[socket.id], dt_sec);
 							j++;
 						}
@@ -122,6 +138,13 @@ function animate() {
 	// c.fillStyle = 'rgba(0, 0, 0, 0.1)'
 	c.clearRect(0, 0, canvas.width, canvas.height)
 
+	// let alpha = 0
+	// if (previousPositions.length != 0) {
+	// 	for (const i in previousPositions) {
+	// 		alpha = lerp(alpha, 0.2, 0.2)
+	// 		debug_draw(previousPositions[i].x, previousPositions[i].y, 64, 128, alpha)
+	// 	}
+	// }	
 
 	for (const id in frontEndPlayers) {
 		const frontEndPlayer = frontEndPlayers[id]
@@ -154,11 +177,22 @@ let sequenceNumber = 0
 setInterval(() => {
 	if (!frontEndPlayers[socket.id]) return
 
+	// Compute delta time since last update.
+	var now_ts = +new Date()
+	var last_ts = this.last_ts || now_ts;
+	var dt_sec = (now_ts - last_ts) / 1000.0;
+	this.last_ts = now_ts;
+
 	if (frontEndPlayers[socket.id].dy === 0) {
 		keys.w.pressed = false;
 	}
 
 	//console.log(frontEndPlayers[socket.id])
+
+	// client-side prediction
+	predictClient(dt_sec)
+
+	// IDEAL?
 
 	// process server messages -> updatePlayer() currently does this
 	//processServerMessages()
@@ -172,6 +206,20 @@ setInterval(() => {
 	// Render the world -> animate() currently does this
 
 }, 15)
+
+function predictClient(dt_sec) {
+	// if (inputsToPredict.length === 0) return
+
+	// for (const input in inputsToPredict) {
+
+	// 	frontEndPlayers[socket.id].dx = input.dx
+	// 	frontEndPlayers[socket.id].dy = input.dy
+
+	// 	frontEndPlayers[socket.id].x += input.dx * SPEED * dt_sec
+	// 	frontEndPlayers[socket.id].y += input.dy * SPEED * dt_sec
+	// 	inputsToPredict.shift()
+	// }
+}
 
 window.addEventListener('keydown', (event) => {
 	if (!frontEndPlayers[socket.id]) return
@@ -213,6 +261,7 @@ window.addEventListener('keydown', (event) => {
 
 	if (!input.event) return
 	//applyInput(frontEndPlayers[socket.id], input) // Client-side Prediction
+	inputsToPredict.push(input)
 	socket.emit('sendInput', input) // Send input to server
 	playerInputs.push(input) // Save input for Server Reconciliation
 })
@@ -247,6 +296,7 @@ window.addEventListener('keyup', (event) => {
 	// Send input to server
 	if (!input.event) return
 	//applyInput(frontEndPlayers[socket.id], input) // Client-side Prediction
+	inputsToPredict.push(input)
 	socket.emit('sendInput', input) // Send input to server
 	playerInputs.push(input) // Save input for Server Reconciliation
 })
