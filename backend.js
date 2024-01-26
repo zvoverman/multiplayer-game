@@ -83,7 +83,7 @@ setInterval(() => {
 
 	// send world state
 	io.emit('updatePlayers', backEndPlayers)
-}, 30)
+}, 15)
 
 function processInputs(delta_time) {
 	// Process all inputs in queue

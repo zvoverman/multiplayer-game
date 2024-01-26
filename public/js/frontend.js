@@ -61,8 +61,8 @@ socket.on('updatePlayers', (backEndPlayers) => {
 				let target_x = backEndPlayer.x
 				let target_y = backEndPlayer.y
 
-				frontEndPlayers[id].x = lerp(frontEndPlayers[id].x, target_x, 0.5)
-				frontEndPlayers[id].y = lerp(frontEndPlayers[id].y, target_y, 0.5)
+				frontEndPlayers[id].x = target_x //lerp(frontEndPlayers[id].x, target_x, 0.5)
+				frontEndPlayers[id].y = target_y //lerp(frontEndPlayers[id].y, target_y, 0.5)
 
 				pos = {
 					x: frontEndPlayers[id].x,
@@ -131,6 +131,8 @@ function applyInput(frontEndPlayer, dt_sec) {
 	frontEndPlayer.y += frontEndPlayer.dy * dt_sec
 }
 
+let debug = false
+
 // Animate Canvas and Entities
 let animationId
 function animate() {
@@ -138,13 +140,15 @@ function animate() {
 	// c.fillStyle = 'rgba(0, 0, 0, 0.1)'
 	c.clearRect(0, 0, canvas.width, canvas.height)
 
-	// let alpha = 0
-	// if (previousPositions.length != 0) {
-	// 	for (const i in previousPositions) {
-	// 		alpha = lerp(alpha, 0.2, 0.2)
-	// 		debug_draw(previousPositions[i].x, previousPositions[i].y, 64, 128, alpha)
-	// 	}
-	// }	
+	if (debug) {
+		let alpha = 0
+		if (previousPositions.length != 0) {
+			for (const i in previousPositions) {
+				alpha = lerp(alpha, 0.2, 0.2)
+				debug_draw(previousPositions[i].x, previousPositions[i].y, 64, 128, alpha)
+			}
+		}
+	}
 
 	for (const id in frontEndPlayers) {
 		const frontEndPlayer = frontEndPlayers[id]
@@ -187,44 +191,12 @@ setInterval(() => {
 		keys.w.pressed = false;
 	}
 
-	//console.log(frontEndPlayers[socket.id])
-
-	// client-side prediction
-	predictClient(dt_sec)
-
-	// IDEAL?
-
-	// process server messages -> updatePlayer() currently does this
-	//processServerMessages()
-
-	// process inputs -> Doing this HERE
-	//processInputs()
-
-	// Interpolate other entities -> updatePlayer() currenly does this
-	//interpolateEntities()
-
-	// Render the world -> animate() currently does this
-
 }, 15)
-
-function predictClient(dt_sec) {
-	// if (inputsToPredict.length === 0) return
-
-	// for (const input in inputsToPredict) {
-
-	// 	frontEndPlayers[socket.id].dx = input.dx
-	// 	frontEndPlayers[socket.id].dy = input.dy
-
-	// 	frontEndPlayers[socket.id].x += input.dx * SPEED * dt_sec
-	// 	frontEndPlayers[socket.id].y += input.dy * SPEED * dt_sec
-	// 	inputsToPredict.shift()
-	// }
-}
 
 window.addEventListener('keydown', (event) => {
 	if (!frontEndPlayers[socket.id]) return
 
-	// FIX THE TIMESTAMP
+	// TODO: FIX DELTA_TIME
 	input = { sequenceNumber: sequenceNumber++, id: socket.id, dy: 0, dx: 0 }
 
 	switch (event.code) {
@@ -293,7 +265,6 @@ window.addEventListener('keyup', (event) => {
 			break
 	}
 
-	// Send input to server
 	if (!input.event) return
 	//applyInput(frontEndPlayers[socket.id], input) // Client-side Prediction
 	inputsToPredict.push(input)
