@@ -19,10 +19,14 @@ const GRAVITY_CONSTANT = 0.1;
 var gravity = 0;
 var canJump = false
 
-let inputsToPredict = []
+let inputsToProcess = []
 
 // for debug
 let previousPositions = []
+
+const SPEED = 200
+let playerInputs = []
+let sequenceNumber = 0
 
 
 function debug_draw(x, y, width, height, alpha) {
@@ -32,15 +36,64 @@ function debug_draw(x, y, width, height, alpha) {
 	c.restore()
 }
 
+let backEndPlayerStates = {}
 socket.on('updatePlayers', (backEndPlayers) => {
-	// Compute delta time since last update.
-	var now_ts = +new Date()
-	var last_ts = this.last_ts || now_ts;
-	var dt_sec = (now_ts - last_ts) / 1000.0;
-	this.last_ts = now_ts;
+	backEndPlayerStates = backEndPlayers
+})
 
-	for (const id in backEndPlayers) {
-		const backEndPlayer = backEndPlayers[id]
+let showDebug = false
+let show_debug_draw = false
+let server_reconciliation = true
+let client_side_prediction = true
+// Main Game Loop
+// process queued player inputs
+// update player state based on authoritative server
+// render the world
+function gameLoop(current_timestamp) {
+
+	// Calculate delta_time
+	var last_timestamp = this.last_timestamp || current_timestamp;
+	var delta_time = (current_timestamp - last_timestamp) / 1000.0;
+	this.last_timestamp = current_timestamp;
+
+	processInputs(delta_time)
+
+	updatePlayers(delta_time)
+
+	// entityInterpolation()
+
+	render()
+
+	requestAnimationFrame(gameLoop)
+}
+
+// Process player input queue
+function processInputs(delta_time) {
+	if (inputsToProcess.length === 0) return
+
+	for (const e in inputsToProcess) {
+		let input = inputsToProcess[e]
+		input.delta_time = delta_time
+		// console.log(input)
+
+		if (client_side_prediction) {
+			applyInput(frontEndPlayers[input.id], input) // Client-side Prediction
+		}
+
+		// TODO: Send queued input as single message to limit bandwidth usage
+		socket.emit('sendInput', input) // Send input to server
+		playerInputs.push(input) // Save input for Server Reconciliation
+	}
+	inputsToProcess = []
+}
+
+requestAnimationFrame(gameLoop)
+
+function updatePlayers(delta_time) {
+	if (!backEndPlayerStates) return
+
+	for (const id in backEndPlayerStates) {
+		const backEndPlayer = backEndPlayerStates[id]
 
 		// If this is the first time we see this entity, create a local representation.
 		if (!frontEndPlayers[id]) {
@@ -78,7 +131,8 @@ socket.on('updatePlayers', (backEndPlayers) => {
 				frontEndPlayers[id].dx = backEndPlayer.dx
 				frontEndPlayers[id].dy = backEndPlayer.dy
 
-				server_reconciliation = true
+				frontEndPlayers[id].canJump = backEndPlayer.canJump
+
 				if (server_reconciliation) {
 					// Server Reconciliation. Re-apply all the inputs not yet processed by the server.
 					var j = 0;
@@ -87,12 +141,12 @@ socket.on('updatePlayers', (backEndPlayers) => {
 						if (input.sequenceNumber <= backEndPlayer.sequenceNumber) {
 							// Already processed. Its effect is already taken into account into the world update
 							// we just got, so we can drop it.
+
+							// console.log(input.sequenceNumber - backEndPlayer.sequenceNumber)
 							playerInputs.shift()
 						} else {
 							// Not processed by the server yet. Re-apply it.
-							//console.log(input)
-							console.log(input.sequenceNumber - backEndPlayer.sequenceNumber)
-							applyInput(frontEndPlayers[socket.id], dt_sec);
+							applyInput(frontEndPlayers[socket.id], input);
 							j++;
 						}
 					}
@@ -120,27 +174,26 @@ socket.on('updatePlayers', (backEndPlayers) => {
 
 	// this is where we delete frontend players
 	for (const id in frontEndPlayers) {
-		if (!backEndPlayers[id]) {
+		if (!backEndPlayerStates[id]) {
 			delete frontEndPlayers[id]
 		}
 	}
-})
-
-function applyInput(frontEndPlayer, dt_sec) {
-	frontEndPlayer.x += frontEndPlayer.dx * dt_sec
-	frontEndPlayer.y += frontEndPlayer.dy * dt_sec
 }
 
-let debug = false
+function applyInput(player, input) {
+	if (!player) return
+	player.dx = input.dx * SPEED * input.delta_time
+	player.dy = input.dy * SPEED * input.delta_time
 
-// Animate Canvas and Entities
-let animationId
-function animate() {
-	animationId = requestAnimationFrame(animate)
+	player.x += player.dx * input.delta_time
+	player.y += player.dy * input.delta_time
+}
+
+function render() {
 	// c.fillStyle = 'rgba(0, 0, 0, 0.1)'
 	c.clearRect(0, 0, canvas.width, canvas.height)
 
-	if (debug) {
+	if (show_debug_draw) {
 		let alpha = 0
 		if (previousPositions.length != 0) {
 			for (const i in previousPositions) {
@@ -156,9 +209,8 @@ function animate() {
 		frontEndPlayer.draw()
 
 	}
-}
 
-requestAnimationFrame(animate)
+}
 
 const keys = {
 	w: {
@@ -172,35 +224,20 @@ const keys = {
 	},
 	d: {
 		pressed: false
+	},
+	i: {
+		pressed: false
 	}
 }
-
-const SPEED = 500
-let playerInputs = []
-let sequenceNumber = 0
-setInterval(() => {
-	if (!frontEndPlayers[socket.id]) return
-
-	// Compute delta time since last update.
-	var now_ts = +new Date()
-	var last_ts = this.last_ts || now_ts;
-	var dt_sec = (now_ts - last_ts) / 1000.0;
-	this.last_ts = now_ts;
-
-	if (frontEndPlayers[socket.id].dy === 0) {
-		keys.w.pressed = false;
-	}
-
-}, 15)
 
 window.addEventListener('keydown', (event) => {
 	if (!frontEndPlayers[socket.id]) return
 
-	// TODO: FIX DELTA_TIME
 	input = { sequenceNumber: sequenceNumber++, id: socket.id, dy: 0, dx: 0 }
 
 	switch (event.code) {
 		case 'KeyW':
+			// TODO: Check floor collision on client side -> if keys.w.pressed when floor is hit JUMP
 			if (keys.w.pressed) {
 				return
 			} else {
@@ -227,15 +264,19 @@ window.addEventListener('keydown', (event) => {
 				input.event = 'Run'
 				input.dx = 1
 				keys.d.pressed = true
-				break
+			}
+			break
+		case "KeyI":
+			if (keys.i.pressed) {
+				return
+			} else {
+				server_reconciliation = !server_reconciliation
+				client_side_prediction = !client_side_prediction
+				console.log("network magic toggled: " + server_reconciliation)
 			}
 	}
-
 	if (!input.event) return
-	//applyInput(frontEndPlayers[socket.id], input) // Client-side Prediction
-	inputsToPredict.push(input)
-	socket.emit('sendInput', input) // Send input to server
-	playerInputs.push(input) // Save input for Server Reconciliation
+	inputsToProcess.push(input)
 })
 
 window.addEventListener('keyup', (event) => {
@@ -244,6 +285,9 @@ window.addEventListener('keyup', (event) => {
 	input = { sequenceNumber: sequenceNumber++, id: socket.id, dy: 0, dx: 0 }
 
 	switch (event.code) {
+		case 'KeyW':
+			keys.w.pressed = false
+			break
 		case 'KeyA':
 			if (keys.d.pressed) {
 				input.event = 'Run'
@@ -263,13 +307,12 @@ window.addEventListener('keyup', (event) => {
 			}
 			keys.d.pressed = false
 			break
+		case 'KeyI':
+			keys.i.pressed = false
+			break
 	}
-
 	if (!input.event) return
-	//applyInput(frontEndPlayers[socket.id], input) // Client-side Prediction
-	inputsToPredict.push(input)
-	socket.emit('sendInput', input) // Send input to server
-	playerInputs.push(input) // Save input for Server Reconciliation
+	inputsToProcess.push(input)
 })
 
 function lerp(a, b, alpha) {
