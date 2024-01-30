@@ -40,7 +40,7 @@ io.on('connection', (socket) => {
 		height: HEIGHT,
 		color: "rgba(0, 0, 255, 1)",
 		sequenceNumber: 0,
-		timeStamp: 0,
+		timestamp: 0,
 		gravity: 0,
 		canJump: false
 	}
@@ -58,38 +58,52 @@ io.on('connection', (socket) => {
 	})
 
 	socket.on('sendInput', (input) => {
-		inputQueue.push(input)
+		// inputQueue.push(input)
+		const backEndPlayer = backEndPlayers[input.id]
+		if (input.event === 'Run' || input.event === 'Stop') {
+			backEndPlayer.dx = input.dx * SPEED * input.delta_time
+			backEndPlayer.sequenceNumber = input.sequenceNumber
+			backEndPlayer.timestamp = input.timestamp
+		} else if (input.event === 'Jump' && backEndPlayer.canJump == true) {
+			backEndPlayer.canJump = false
+			backEndPlayer.dy = input.dy * SPEED * JUMP_FORCE * input.delta_time
+			backEndPlayer.sequenceNumber = input.sequenceNumber
+			backEndPlayer.timestamp = input.timestamp
+		}
 	})
 })
 
 // backend ticker
 setInterval(() => {
 
-	processInputs() // delta_time is passed to 
+	// processInputs() // delta_time is passed to 
 
 	physics() // delta_time calculated within 
 
 	io.emit('updatePlayers', backEndPlayers)
 
-}, 15)
+}, 150)
 
-function processInputs() {
-	// Process all inputs in queue
-	while (inputQueue.length != 0) {
-		// TODO: Implement q as linked list to make O(n) -> O(1)
-		let input = inputQueue.shift()
+// function processInputs() {
+// 	// Process all inputs in queue
+// 	while (inputQueue.length != 0) {
+// 		// TODO: Implement q as linked list to make O(n) -> O(1)
+// 		let input = inputQueue.shift()
 
-		const backEndPlayer = backEndPlayers[input.id]
-		if (input.event === 'Run' || input.event === 'Stop') {
-			backEndPlayer.dx = input.dx * SPEED * input.delta_time
-			backEndPlayer.sequenceNumber = input.sequenceNumber
-		} else if (input.event === 'Jump' && backEndPlayer.canJump == true) {
-			backEndPlayer.canJump = false
-			backEndPlayer.dy = input.dy * SPEED * JUMP_FORCE * input.delta_time
-			backEndPlayer.sequenceNumber = input.sequenceNumber
-		}
-	}
-}
+// 		const backEndPlayer = backEndPlayers[input.id]
+// 		if (input.event === 'Run' || input.event === 'Stop') {
+// 			console.log(input)
+// 			backEndPlayer.dx = input.dx * SPEED * input.delta_time
+// 			backEndPlayer.sequenceNumber = input.sequenceNumber
+// 			backEndPlayer.timestamp = input.timestamp
+// 		} else if (input.event === 'Jump' && backEndPlayer.canJump == true) {
+// 			backEndPlayer.canJump = false
+// 			backEndPlayer.dy = input.dy * SPEED * JUMP_FORCE * input.delta_time
+// 			backEndPlayer.sequenceNumber = input.sequenceNumber
+// 			backEndPlayer.timestamp = input.timestamp
+// 		}
+// 	}
+// }
 
 function physics() {
 	// Compute delta time since last update.
@@ -97,6 +111,8 @@ function physics() {
 	var last_ts = this.last_ts || now_ts;
 	var delta_time = (now_ts - last_ts) / 1000.0;
 	this.last_ts = now_ts;
+
+	console.log(delta_time)
 
 	for (const id in backEndPlayers) {
 		const backEndPlayer = backEndPlayers[id]
@@ -106,17 +122,20 @@ function physics() {
 		backEndPlayer.y += backEndPlayer.dy * SPEED * delta_time
 
 		// Is player on floor?
-		if (backEndPlayer.y + backEndPlayer.height > backEndPlayer.canvas.height) {
+		if (backEndPlayer.y + backEndPlayer.height > 576) {
 			backEndPlayer.canJump = true
 			backEndPlayer.dy = 0;
-			backEndPlayer.y = backEndPlayer.canvas.height - backEndPlayer.height
+			backEndPlayer.y = 576 - backEndPlayer.height
 			backEndPlayer.gravity = 0;
 		} else {
+			// TODO: What the fuck? Fix your physics
 			backEndPlayer.dy += backEndPlayer.gravity * delta_time
 			backEndPlayer.y += backEndPlayer.dy * delta_time
 			backEndPlayer.gravity += GRAVITY_CONSTANT * delta_time
 		}
 	}
+
+	backEndPlayers.timestamp = now_ts
 }
 
 function lerp(a, b, alpha) {
