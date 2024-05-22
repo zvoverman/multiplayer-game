@@ -145,7 +145,9 @@ function physics(now_ts, delta_time) {
 
 		// backEndPlayer.timestamp = now_ts;
 		// console.log(backEndPlayer.timestamp)
-		backEndPlayer.time_since_input = now_ts - backEndPlayer.server_timestamp;
+		if (backEndPlayer.server_timestamp !== 0)
+			backEndPlayer.time_since_input = now_ts - backEndPlayer.server_timestamp;
+		// console.log(backEndPlayer.time_since_input);
 	}
 }
 
