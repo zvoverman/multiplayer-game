@@ -24,6 +24,4 @@ class Player {
 		c.fillRect(this.x, this.y, this.width, this.height)
 		c.restore()
 	}
-
-	
 }
