@@ -8,15 +8,15 @@ const server = http.createServer(app);
 const io = new Server(server, { pingInterval: 2000, pingTimeout: 5000 });
 const port = 8080;
 
-app.use(express.static('public'))
+app.use(express.static('public'));
 
 app.get('/', (req, res) => {
-	res.sendFile(__dirname + '/index.html')
+	res.sendFile(__dirname + '/index.html');
 })
 
 // player constants
-const SPEED = 500
-const JUMP_FORCE = 1.0
+const SPEED = 500;
+const JUMP_FORCE = 400;
 const WIDTH = 64;
 const HEIGHT = 128;
 const GRAVITY_CONSTANT = 2000;
@@ -101,10 +101,10 @@ function processInputs(now_ts) {
 			backEndPlayer.timestamp = input.timestamp;
 		} else if (input.event === 'Jump' && backEndPlayer.canJump == true) {
 			backEndPlayer.canJump = false;
-			backEndPlayer.dy = input.dy * SPEED;
+			backEndPlayer.dy = input.dy * JUMP_FORCE;
 			backEndPlayer.sequenceNumber = input.sequenceNumber;
 			backEndPlayer.timestamp = input.timestamp;
-		}
+		} 
 
 		backEndPlayer.server_timestamp = now_ts;
 
@@ -127,13 +127,14 @@ function physics(now_ts, delta_time) {
 		backEndPlayer.x += backEndPlayer.dx * delta_time;
 		// backEndPlayer.y += backEndPlayer.dy * delta_time * JUMP_FORCE
 
+		// floor check
 		if (backEndPlayer.y + backEndPlayer.height + (backEndPlayer.dy * delta_time) >= 576) {
 			backEndPlayer.canJump = true;
 			backEndPlayer.dy = 0;
 			backEndPlayer.y = 576 - backEndPlayer.height;
 			backEndPlayer.gravity = 0;
 		} else {
-			backEndPlayer.dy += backEndPlayer.gravity * JUMP_FORCE * delta_time;
+			backEndPlayer.dy += backEndPlayer.gravity * delta_time;
 			backEndPlayer.y += backEndPlayer.dy * delta_time;
 			backEndPlayer.gravity += GRAVITY_CONSTANT * delta_time;
 		}
