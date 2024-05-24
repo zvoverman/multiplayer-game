@@ -164,8 +164,11 @@ function updatePlayers(timestamp_now) {
 
 							j++;
 						} else {
-							frontEndPlayers[id].dx = input.dx * SPEED;
-							frontEndPlayers[id].dy = input.dy * JUMP_FORCE;
+							if (input.event === 'Run' || input.event === 'Stop') {
+								frontEndPlayers[id].dx = input.dx * SPEED;
+							} else if (input.event === 'Jump' && backEndPlayer.canJump == true) {
+								frontEndPlayers[id].dy = input.dy * JUMP_FORCE;
+							} 
 
 							let time_since_last_input = 0;
 							if (playerInputs[j + 1]) {
