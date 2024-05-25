@@ -22,7 +22,7 @@ let inputsToProcess = [];
 let playerInputs = [];
 let previousPositions = [];
 
-let sequenceNumber = 0;
+let sequenceNumber = 1;
 
 // debug function toggles
 let show_debug_draw = false;
@@ -47,10 +47,13 @@ function gameLoop(current_timestamp) {
 	var delta_time = (current_timestamp - last_timestamp) / 1000.0;
 	this.last_timestamp = current_timestamp;
 
+	// process queued client inputs
 	processInputs(delta_time, current_timestamp);
 
-	updatePlayers(current_timestamp);
+	// perform client-side prediction, server reconciliation, (entity interpolation TODO)
+	updatePlayers(delta_time, current_timestamp);
 
+	// handle client-side collisions (server is authoritative)
 	physics(delta_time);
 
 	render();
@@ -88,7 +91,7 @@ function physics(delta_time) {
 	}
 }
 
-function updatePlayers(timestamp_now) {
+function updatePlayers(delta_time, timestamp_now) {
 	if (!backEndPlayerStates) return;
 
 	for (const id in backEndPlayerStates) {
@@ -110,11 +113,9 @@ function updatePlayers(timestamp_now) {
 
 			if (id === socket.id) {
 				// Received the authoritative position of this client's entity.
-				let target_x = backEndPlayer.x;
-				let target_y = backEndPlayer.y;
+				frontEndPlayers[id].x = backEndPlayer.x;
+				frontEndPlayers[id].y = backEndPlayer.y;
 
-				frontEndPlayers[id].x = target_x;
-				frontEndPlayers[id].y = target_y;
 
 				// Debug Draw Position Q
 				pos = {
@@ -149,9 +150,9 @@ function updatePlayers(timestamp_now) {
 							let time_since_last_input = 0;
 							if (playerInputs[j + 1]) {
 								// want to calculate duration FROM backend timestamp NOT start of input
-								time_since_last_input = ((playerInputs[j + 1].timestamp - (input.timestamp + backEndPlayer.time_since_input)) / 1000);
+								time_since_last_input = ((playerInputs[j + 1].timestamp - (input.timestamp + backEndPlayer.time_since_input)) / 1000) - delta_time;
 							} else {
-								time_since_last_input = ((timestamp_now - (input.timestamp + backEndPlayer.time_since_input)) / 1000);
+								time_since_last_input = ((timestamp_now - (input.timestamp + backEndPlayer.time_since_input)) / 1000) - delta_time;
 							}
 
 							// Calculate x pos
