@@ -12,7 +12,7 @@ app.use(express.static('public'));
 
 app.get('/', (req, res) => {
 	res.sendFile(__dirname + '/index.html');
-})
+});
 
 // player constants
 const SPEED = 500;
@@ -20,6 +20,11 @@ const JUMP_FORCE = 400;
 const WIDTH = 64;
 const HEIGHT = 128;
 const GRAVITY_CONSTANT = 2000;
+
+const CANVAS = {
+	width: 1024,
+	height: 576
+}
 
 let backEndPlayers = {};
 let inputQueue = [];
@@ -45,33 +50,29 @@ io.on('connection', (socket) => {
 		gravity: 0,
 		canJump: false,
 		server_timestamp: 0,
-		time_since_input: 0
-	}
-
-	// initialize canvas
-	backEndPlayers[socket.id].canvas = {
-		width: 1024,
-		height: 576
-	}
+		time_since_input: 0,
+	};
 
 	// cleanly remove player on socket disconnect
 	socket.on('disconnect', (reason) => {
 		console.log(reason);
 		delete backEndPlayers[socket.id];
 		io.emit('updatePlayers', backEndPlayers);
-	})
+	});
 
-	// TODO: make game work with variable network latency
+	const FAKE_LAG = false;
 	socket.on('sendInput', (input) => {
-		// // Simulate network latency for testing
-		// const delay = 200;
-		// console.log(`Simulating latency of ${delay} milliseconds for input: ${input.sequenceNumber}`);
-		// setTimeout(() => {
-		// 	inputQueue.push(input);
-		// }, delay);
-		inputQueue.push(input);
-	})
-})
+		// Simulate network latency for testing
+		if (FAKE_LAG) {
+			const delay = 200;
+			setTimeout(() => {
+				inputQueue.push(input);
+			}, delay);
+		} else {
+			inputQueue.push(input);
+		}
+	});
+});
 
 // backend main game loop
 setInterval(() => {
@@ -86,28 +87,28 @@ setInterval(() => {
 	physics(now_ts, delta_time); // calculate backend state
 
 	io.emit('updatePlayers', backEndPlayers); // send authoritative state to client
-
-}, 15) // 60 fps
+}, 15); // 60 fps
 
 function processInputs(now_ts) {
 	// process all inputs in queue
 	while (inputQueue.length != 0) {
 		let input = inputQueue.shift();
+
+		if (!input.event) return; // drop inputs that don't have an event
+
 		const backEndPlayer = backEndPlayers[input.id];
 
 		// filter input event type
 		if (input.event === 'Run' || input.event === 'Stop') {
 			backEndPlayer.dx = input.dx * SPEED;
-			backEndPlayer.sequenceNumber = input.sequenceNumber;
-			backEndPlayer.timestamp = input.timestamp;
 		} else if (input.event === 'Jump' && backEndPlayer.canJump == true) {
 			backEndPlayer.canJump = false;
 			backEndPlayer.dy = input.dy * JUMP_FORCE;
-			backEndPlayer.sequenceNumber = input.sequenceNumber;
-			backEndPlayer.timestamp = input.timestamp;
 		}
 
-		backEndPlayer.server_timestamp = now_ts;
+		backEndPlayer.sequenceNumber = input.sequenceNumber;
+		backEndPlayer.timestamp = input.timestamp; // client pressed input timestamp
+		backEndPlayer.server_timestamp = now_ts;   // server received input timestamp
 
 		// deal with >2 inputs in a single loop iteration
 		if (inputQueue.length >= 1) {
@@ -124,15 +125,13 @@ function physics(now_ts, delta_time) {
 		const backEndPlayer = backEndPlayers[id];
 
 		// Player movement
-		// move_player(backEndPlayer, delta_time);
 		backEndPlayer.x += backEndPlayer.dx * delta_time;
-		// backEndPlayer.y += backEndPlayer.dy * delta_time * JUMP_FORCE
 
 		// floor check
-		if (backEndPlayer.y + backEndPlayer.height + (backEndPlayer.dy * delta_time) >= 576) {
+		if (backEndPlayer.y + backEndPlayer.height + backEndPlayer.dy * delta_time >= CANVAS.height) {
 			backEndPlayer.canJump = true;
 			backEndPlayer.dy = 0;
-			backEndPlayer.y = 576 - backEndPlayer.height;
+			backEndPlayer.y = CANVAS.height - backEndPlayer.height;
 			backEndPlayer.gravity = 0;
 		} else {
 			backEndPlayer.dy += backEndPlayer.gravity * delta_time;
@@ -141,21 +140,17 @@ function physics(now_ts, delta_time) {
 		}
 
 		// TODO: find a better way to deal with this
-		if (backEndPlayer.server_timestamp !== 0) // if player has just been initialized, don't update time_since_input
+		if (backEndPlayer.server_timestamp !== 0)
+			// if player has just been initialized, don't update time_since_input
 			backEndPlayer.time_since_input = now_ts - backEndPlayer.server_timestamp;
 	}
 }
 
-function move_player(player, delta) {
-	player.x += player.dx * delta;
-	player.y += player.dy * delta;
-}
-
-function lerp(a, b, alpha) {
-	if (a > b - 0.01 && a < b + 0.01) return b;
-	return a + alpha * (b - a);
+function move_player(player, step) {
+	player.x += player.dx * step;
+	player.y += player.dy * step;
 }
 
 server.listen(port, () => {
-	console.log(`Example app listening on port http://localhost:${port}`)
-})
+	console.log(`Example app listening on port http://localhost:${port}`);
+});
