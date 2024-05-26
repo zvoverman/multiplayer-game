@@ -138,7 +138,7 @@ function updatePlayers(delta_time, timestamp_now) {
 					var j = 0;
 					while (j < playerInputs.length) {
 						let input = playerInputs[j];
-						
+
 						if (input.sequenceNumber < backEndPlayer.sequenceNumber) {
 							// Already processed. Its effect is already taken into account into the world update we just got, so we can drop it.
 							playerInputs.shift();
@@ -169,7 +169,7 @@ function updatePlayers(delta_time, timestamp_now) {
 								frontEndPlayers[id].dx = input.dx * SPEED;
 							} else if (input.event === 'Jump' && backEndPlayer.canJump == true) {
 								frontEndPlayers[id].dy = input.dy * JUMP_FORCE;
-							} 
+							}
 
 							let time_since_last_input = 0;
 							if (playerInputs[j + 1]) {

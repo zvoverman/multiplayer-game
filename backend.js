@@ -39,7 +39,7 @@ io.on('connection', (socket) => {
 		target_dy: 0,
 		width: WIDTH,
 		height: HEIGHT,
-		color: "rgba(0, 0, 255, 1)",
+		color: 'rgba(0, 0, 255, 1)',
 		sequenceNumber: 0,
 		timestamp: 0,
 		gravity: 0,
@@ -63,12 +63,13 @@ io.on('connection', (socket) => {
 
 	// TODO: make game work with variable network latency
 	socket.on('sendInput', (input) => {
-		// const delay = Math.floor(Math.random() * 200); // Maximum delay of 1 second
-		const delay = 200;
-    	// console.log(`Simulating latency of ${delay} milliseconds for input: ${input.sequenceNumber}`);
-    	setTimeout(() => {
-			inputQueue.push(input);
-    	}, delay);
+		// // Simulate network latency for testing
+		// const delay = 200;
+		// console.log(`Simulating latency of ${delay} milliseconds for input: ${input.sequenceNumber}`);
+		// setTimeout(() => {
+		// 	inputQueue.push(input);
+		// }, delay);
+		inputQueue.push(input);
 	})
 })
 
@@ -104,10 +105,10 @@ function processInputs(now_ts) {
 			backEndPlayer.dy = input.dy * JUMP_FORCE;
 			backEndPlayer.sequenceNumber = input.sequenceNumber;
 			backEndPlayer.timestamp = input.timestamp;
-		} 
-		
+		}
+
 		backEndPlayer.server_timestamp = now_ts;
-		
+
 		// deal with >2 inputs in a single loop iteration
 		if (inputQueue.length >= 1) {
 			let delta = (inputQueue[0].timestamp - backEndPlayer.timestamp) / 1000.0;
