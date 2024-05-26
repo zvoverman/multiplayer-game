@@ -54,7 +54,7 @@ function gameLoop(current_timestamp) {
     updatePlayers(delta_time, current_timestamp);
 
     // handle client-side collisions (server is authoritative)
-    physics(delta_time);
+    // physics(delta_time);
 
     render();
 
@@ -77,18 +77,6 @@ function processInputs(delta_time, timestamp) {
         playerInputs.push(input); // save input for Server Reconciliation
     }
     inputsToProcess = [];
-}
-
-function physics(delta_time) {
-    if (!frontEndPlayers[socket.id]) return;
-
-    // Is player on floor?
-    if (frontEndPlayers[socket.id].y + frontEndPlayers[socket.id].height + frontEndPlayers[socket.id].dy * delta_time >= canvas.height) {
-        frontEndPlayers[socket.id].canJump = true;
-        frontEndPlayers[socket.id].dy = 0;
-        frontEndPlayers[socket.id].y = canvas.height - frontEndPlayers[socket.id].height;
-        frontEndPlayers[socket.id].gravity = 0;
-    }
 }
 
 function updatePlayers(delta_time, timestamp_now) {
@@ -161,6 +149,8 @@ function updatePlayers(delta_time, timestamp_now) {
                             frontEndPlayers[id].y += frontEndPlayers[id].dy * time_since_last_input;
                             frontEndPlayers[id].gravity += GRAVITY_CONSTANT * time_since_last_input;
 
+                            checkGravity(frontEndPlayers[id]);
+
                             j++;
                         } else {
                             if (input.event === 'Run' || input.event === 'Stop') {
@@ -184,6 +174,8 @@ function updatePlayers(delta_time, timestamp_now) {
                             frontEndPlayers[id].dy += frontEndPlayers[id].gravity * time_since_last_input;
                             frontEndPlayers[id].y += frontEndPlayers[id].dy * time_since_last_input;
                             frontEndPlayers[id].gravity += GRAVITY_CONSTANT * time_since_last_input;
+
+                            checkGravity(frontEndPlayers[id]);
 
                             j++;
                         }
@@ -209,6 +201,34 @@ function updatePlayers(delta_time, timestamp_now) {
         if (!backEndPlayerStates[id]) {
             delete frontEndPlayers[id];
         }
+    }
+}
+
+function checkGravity(player) {
+    if (!player) return;
+
+     // Is player on floor?
+     if (player.y + player.height >= canvas.height) {
+        player.canJump = true;
+        player.dy = 0;
+        player.y = canvas.height - player.height;
+        player.gravity = 0;
+    } else {
+        player.canJump = false;
+    }
+}
+
+function physics(delta_time) {
+    if (!frontEndPlayers[socket.id]) return;
+
+    // Is player on floor?
+    if (frontEndPlayers[socket.id].y + frontEndPlayers[socket.id].height >= canvas.height) {
+        frontEndPlayers[socket.id].canJump = true;
+        frontEndPlayers[socket.id].dy = 0;
+        frontEndPlayers[socket.id].y = canvas.height - frontEndPlayers[socket.id].height;
+        frontEndPlayers[socket.id].gravity = 0;
+    } else {
+        frontEndPlayers[socket.id].canJump = false;
     }
 }
 
@@ -259,7 +279,6 @@ window.addEventListener('keydown', (event) => {
 
     switch (event.code) {
         case 'KeyW':
-            console.log(frontEndPlayers[socket.id].canJump)
             // TODO: Check floor collision on client side -> if keys.w.pressed when floor is hit JUMP
             if (keys.w.pressed || !frontEndPlayers[socket.id].canJump) {
                 return;
@@ -268,8 +287,6 @@ window.addEventListener('keydown', (event) => {
                 input.dy = -1;
                 input.sequenceNumber = sequenceNumber++;
                 keys.w.pressed = true;
-                // can't jump once in the air
-                frontEndPlayers[socket.id].canJump = false;
             }
             break;
 
