@@ -201,7 +201,7 @@ function render() {
     if (show_debug_draw) {
         for (const id in backEndPlayerStates) {
             let backEndPlayer = backEndPlayerStates[id]
-            debug_draw(backEndPlayer.x, backEndPlayer.y, 64, 128)
+            debug_draw(backEndPlayer.x, backEndPlayer.y, backEndPlayer.width, backEndPlayer.height)
         }
     }
 

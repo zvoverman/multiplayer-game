@@ -18,7 +18,7 @@ app.get('/', (req, res) => {
 const SPEED = 500;
 const JUMP_FORCE = 400;
 const WIDTH = 64;
-const HEIGHT = 128;
+const HEIGHT = 64;
 const GRAVITY_CONSTANT = 2000;
 
 const CANVAS = {
@@ -36,8 +36,8 @@ io.on('connection', (socket) => {
 	io.emit('updatePlayers', backEndPlayers);
 
 	backEndPlayers[socket.id] = {
-		x: 1024 * Math.random(),
-		y: 576 * Math.random(),
+		x: CANVAS.width * Math.random(),
+		y: CANVAS.height * Math.random(),
 		dx: 0,
 		dy: 0,
 		target_dx: 0,
@@ -60,7 +60,7 @@ io.on('connection', (socket) => {
 		io.emit('updatePlayers', backEndPlayers);
 	});
 
-	const FAKE_LAG = false;
+	const FAKE_LAG = true;
 	socket.on('sendInput', (input) => {
 		// Simulate network latency for testing
 		if (FAKE_LAG) {
@@ -118,7 +118,6 @@ function processInputs(now_ts) {
 	}
 }
 
-// TODO: I really need to fix the physics and sync frontend and backend
 function physics(now_ts, delta_time) {
 	// process physics for every backend player
 	for (const id in backEndPlayers) {
@@ -146,9 +145,9 @@ function physics(now_ts, delta_time) {
 	}
 }
 
-function move_player(player, step) {
-	player.x += player.dx * step;
-	player.y += player.dy * step;
+function move_player(player, timestep) {
+	player.x += player.dx * timestep;
+	player.y += player.dy * timestep;
 }
 
 server.listen(port, () => {
