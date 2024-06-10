@@ -49,6 +49,7 @@ io.on('connection', (socket) => {
 		timestamp: 0,
 		gravity: 0,
 		canJump: false,
+		character_number: 65 * Math.floor(Math.random() * 4),
 		server_timestamp: 0,
 		time_since_input: 0,
 	};

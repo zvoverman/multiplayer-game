@@ -75,7 +75,7 @@ function updatePlayers(delta_time, timestamp_now) {
                 dy: backEndPlayer.dy,
                 width: backEndPlayer.width,
                 height: backEndPlayer.height,
-                color: backEndPlayer.color,
+                character_number: backEndPlayer. character_number,
             });
         } else {
             if (id === socket.id) {

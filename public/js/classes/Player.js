@@ -1,11 +1,11 @@
 class Player {
-    constructor({ x, y, width, height, color }) {
+    constructor({ x, y, width, height, character_number }) {
         // constructor parameters
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
-        this.color = color;
+        this.character_number = character_number;
 
         // initialize other variables
         this.dx = 0;
@@ -14,7 +14,6 @@ class Player {
         this.timestamp = 0;
         this.sequenceNumber = 0;
         this.canJump = false;
-        this.character_number = 65 * Math.floor(Math.random() * 4);
         this.flipX = 0;
 
         // Default last direction to right
