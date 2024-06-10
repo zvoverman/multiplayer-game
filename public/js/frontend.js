@@ -1,11 +1,10 @@
 // init canvas
 const canvas = document.querySelector('canvas');
 const c = canvas.getContext('2d');
-const devicePixelRatio = window.devicePixelRatio || 1;
 
-canvas.width = 1024 * devicePixelRatio;
-canvas.height = 576 * devicePixelRatio;
-c.scale(devicePixelRatio, devicePixelRatio);
+canvas.width = 1024
+canvas.height = 576
+
 
 const socket = io();
 
@@ -17,7 +16,6 @@ const GRAVITY_CONSTANT = 2000;
 // track state
 let frontEndPlayers = {};
 let backEndPlayerStates = {};
-
 let inputsToProcess = [];
 let playerInputs = [];
 
@@ -36,18 +34,11 @@ function gameLoop(current_timestamp) {
     var last_timestamp = this.last_timestamp || current_timestamp;
     var delta_time = (current_timestamp - last_timestamp) / 1000.0;
     this.last_timestamp = current_timestamp;
-
     // process queued client inputs
     processInputs(delta_time, current_timestamp);
-
     // perform client-side prediction, server reconciliation, (entity interpolation TODO)
     updatePlayers(delta_time, current_timestamp);
-
-    // handle client-side collisions (server is authoritative)
-    // physics(delta_time);
-
     render();
-
     requestAnimationFrame(gameLoop);
 }
 
