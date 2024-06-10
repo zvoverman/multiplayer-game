@@ -115,7 +115,7 @@ function updatePlayers(delta_time, timestamp_now) {
                 frontEndPlayers[id].dx = backEndPlayer.dx;
                 frontEndPlayers[id].dy = backEndPlayer.dy;
 
-                //frontEndPlayers[id].canJump = backEndPlayer.canJump;
+                frontEndPlayers[id].canJump = backEndPlayer.canJump;
                 frontEndPlayers[id].gravity = backEndPlayer.gravity;
 
                 if (server_reconciliation) {
@@ -222,14 +222,7 @@ function physics(delta_time) {
     if (!frontEndPlayers[socket.id]) return;
 
     // Is player on floor?
-    if (frontEndPlayers[socket.id].y + frontEndPlayers[socket.id].height >= canvas.height) {
-        frontEndPlayers[socket.id].canJump = true;
-        frontEndPlayers[socket.id].dy = 0;
-        frontEndPlayers[socket.id].y = canvas.height - frontEndPlayers[socket.id].height;
-        frontEndPlayers[socket.id].gravity = 0;
-    } else {
-        frontEndPlayers[socket.id].canJump = false;
-    }
+    checkGravity(frontEndPlayers[socket.id]);
 }
 
 function render() {
@@ -287,6 +280,8 @@ window.addEventListener('keydown', (event) => {
                 input.dy = -1;
                 input.sequenceNumber = sequenceNumber++;
                 keys.w.pressed = true;
+
+                frontEndPlayers[socket.id].canJump = false;
             }
             break;
 
