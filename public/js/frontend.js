@@ -98,104 +98,34 @@ function updatePlayers(delta_time, timestamp_now) {
             });
         } else {
             if (id === socket.id) {
+                let player = frontEndPlayers[id]
                 // Received the authoritative position of this client's entity.
-                frontEndPlayers[id].x = backEndPlayer.x;
-                frontEndPlayers[id].y = backEndPlayer.y;
-
-                // Debug Draw Position Q
-                pos = {
-                    x: frontEndPlayers[id].x,
-                    y: frontEndPlayers[id].y,
-                };
-                previousPositions.push(pos);
-                if (previousPositions.length > 10) {
-                    previousPositions.shift();
-                }
-
-                frontEndPlayers[id].dx = backEndPlayer.dx;
-                frontEndPlayers[id].dy = backEndPlayer.dy;
-
-                frontEndPlayers[id].canJump = backEndPlayer.canJump;
-                frontEndPlayers[id].gravity = backEndPlayer.gravity;
+                player.x = backEndPlayer.x;
+                player.y = backEndPlayer.y;
+                player.dx = backEndPlayer.dx;
+                player.dy = backEndPlayer.dy;
+                player.canJump = backEndPlayer.canJump;
+                player.gravity = backEndPlayer.gravity;
 
                 if (server_reconciliation) {
-                    // Server Reconciliation. Re-apply all the inputs not yet processed by the server.
-                    var j = 0;
-                    while (j < playerInputs.length) {
-                        let input = playerInputs[j];
-
-                        if (input.sequenceNumber < backEndPlayer.sequenceNumber) {
-                            // Already processed. Its effect is already taken into account into the world update we just got, so we can drop it.
-                            playerInputs.shift();
-                        } else if (input.sequenceNumber === backEndPlayer.sequenceNumber) {
-                            frontEndPlayers[id].dx = backEndPlayer.dx;
-                            frontEndPlayers[id].dy = backEndPlayer.dy;
-
-                            // Not processed by the server yet. Re-apply it.
-                            let time_since_last_input = 0;
-                            if (playerInputs[j + 1]) {
-                                // want to calculate duration FROM backend timestamp NOT start of input
-                                time_since_last_input =
-                                    (playerInputs[j + 1].timestamp - (input.timestamp + backEndPlayer.time_since_input)) / 1000 - delta_time;
-                            } else {
-                                time_since_last_input = (timestamp_now - (input.timestamp + backEndPlayer.time_since_input)) / 1000 - delta_time;
-                            }
-
-                            // Calculate x pos
-                            frontEndPlayers[id].x += frontEndPlayers[id].dx * time_since_last_input;
-
-                            // Calculate y pos
-                            frontEndPlayers[id].dy += frontEndPlayers[id].gravity * time_since_last_input;
-                            frontEndPlayers[id].y += frontEndPlayers[id].dy * time_since_last_input;
-                            frontEndPlayers[id].gravity += GRAVITY_CONSTANT * time_since_last_input;
-
-                            checkGravity(frontEndPlayers[id]);
-
-                            j++;
-                        } else {
-                            if (input.event === 'Run' || input.event === 'Stop') {
-                                frontEndPlayers[id].dx = input.dx * SPEED;
-                            } else if (input.event === 'Jump') {
-                                frontEndPlayers[id].dy = input.dy * JUMP_FORCE;
-                            }
-
-                            let time_since_last_input = 0;
-                            if (playerInputs[j + 1]) {
-                                // want to calculate duration FROM backend timestamp NOT start of input
-                                time_since_last_input = (playerInputs[j + 1].timestamp - input.timestamp) / 1000;
-                            } else {
-                                time_since_last_input = (timestamp_now - input.timestamp) / 1000;
-                            }
-
-                            // Calculate x pos
-                            frontEndPlayers[id].x += frontEndPlayers[id].dx * time_since_last_input;
-
-                            // Calculate y pos
-                            frontEndPlayers[id].dy += frontEndPlayers[id].gravity * time_since_last_input;
-                            frontEndPlayers[id].y += frontEndPlayers[id].dy * time_since_last_input;
-                            frontEndPlayers[id].gravity += GRAVITY_CONSTANT * time_since_last_input;
-
-                            checkGravity(frontEndPlayers[id]);
-
-                            j++;
-                        }
-                    }
+                    reconciliate(player, backEndPlayer, timestamp_now, delta_time)
                 } else {
                     // Reconciliation is disabled, so drop all the saved inputs.
                     playerInputs = [];
                 }
             } else {
+                let player = frontEndPlayers[id]
                 // Received the position of an entity other than this client's.
                 // Entity interpolation is disabled - just accept the server's position.
-                frontEndPlayers[id].x = backEndPlayer.x;
-                frontEndPlayers[id].y = backEndPlayer.y;
-
-                frontEndPlayers[id].dx = backEndPlayer.dx;
-                frontEndPlayers[id].dy = backEndPlayer.dy;
+                player.x = backEndPlayer.x;
+                player.y = backEndPlayer.y;
+                player.dx = backEndPlayer.dx;
+                player.dy = backEndPlayer.dy;
+                player.canJump = backEndPlayer.canJump;
+                player.gravity = backEndPlayer.gravity;
             }
         }
     }
-
     // if frontendplayer is not in backend, delete the player
     for (const id in frontEndPlayers) {
         if (!backEndPlayerStates[id]) {
@@ -204,11 +134,70 @@ function updatePlayers(delta_time, timestamp_now) {
     }
 }
 
+// Server Reconciliation. Re-apply all the inputs not yet processed by the server.
+function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
+    var j = 0;
+    while (j < playerInputs.length) {
+        let input = playerInputs[j];
+
+        if (input.sequenceNumber < backEndPlayer.sequenceNumber) {
+            // Already processed. Its effect is already taken into account into the world update we just got, so we can drop it.
+            playerInputs.shift();
+
+        } else if (input.sequenceNumber === backEndPlayer.sequenceNumber) {
+            // Server currently dealing with this input. Re-apply movement since last server update.
+            player.dx = backEndPlayer.dx;
+            player.dy = backEndPlayer.dy;
+
+            let time_since_last_input = 0;
+            if (playerInputs[j + 1]) {
+                time_since_last_input =
+                    (playerInputs[j + 1].timestamp - (input.timestamp + backEndPlayer.time_since_input)) / 1000 - delta_time;
+            } else {
+                time_since_last_input = (timestamp_now - (input.timestamp + backEndPlayer.time_since_input)) / 1000 - delta_time;
+            }
+
+            move_player(player, time_since_last_input)
+            j++;
+
+        } else {
+            // Not processed by the server yet. Re-apply all of it.
+            if (input.event === 'Run' || input.event === 'Stop') {
+                player.dx = input.dx * SPEED;
+            } else if (input.event === 'Jump') {
+                player.dy = input.dy * JUMP_FORCE;
+            }
+
+            let time_since_last_input = 0;
+            if (playerInputs[j + 1]) {
+                time_since_last_input = (playerInputs[j + 1].timestamp - input.timestamp) / 1000;
+            } else {
+                time_since_last_input = (timestamp_now - input.timestamp) / 1000;
+            }
+
+            move_player(player, time_since_last_input)
+            j++;
+        }
+    }
+}
+
+function move_player(player, timestep) {
+    // Calculate x pos
+    player.x += player.dx * timestep;
+
+    // Calculate y pos
+    player.dy += player.gravity * timestep;
+    player.y += player.dy * timestep;
+    player.gravity += GRAVITY_CONSTANT * timestep;
+
+    checkGravity(player);
+}
+
 function checkGravity(player) {
     if (!player) return;
 
-     // Is player on floor?
-     if (player.y + player.height >= canvas.height) {
+    // Is player on floor?
+    if (player.y + player.height >= canvas.height) {
         player.canJump = true;
         player.dy = 0;
         player.y = canvas.height - player.height;

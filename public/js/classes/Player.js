@@ -1,15 +1,18 @@
 class Player {
     constructor({ x, y, width, height, color }) {
+        // constructor parameters
         this.x = x;
         this.y = y;
         this.width = width;
         this.height = height;
-
         this.color = color;
 
+        // initialize other variables
         this.dx = 0;
         this.dy = 0;
-
+        this.gravity = 0;
+        this.timestamp = 0;
+        this.sequenceNumber = 0;
         this.canJump = false;
 
         this.playerSides = {
