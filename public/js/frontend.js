@@ -20,7 +20,6 @@ let backEndPlayerStates = {};
 
 let inputsToProcess = [];
 let playerInputs = [];
-let previousPositions = [];
 
 let sequenceNumber = 1;
 
@@ -28,13 +27,6 @@ let sequenceNumber = 1;
 let show_debug_draw = false;
 let server_reconciliation = true;
 let client_side_prediction = true;
-
-function debug_draw(x, y, width, height, alpha) {
-    c.beginPath();
-    c.fillStyle = `rgba(0, 0, 0, ${alpha})`;
-    c.fillRect(x, y, width, height);
-    c.restore();
-}
 
 socket.on('updatePlayers', (backEndPlayers) => {
     backEndPlayerStates = backEndPlayers;
@@ -218,12 +210,9 @@ function render() {
     c.clearRect(0, 0, canvas.width, canvas.height);
 
     if (show_debug_draw) {
-        let alpha = 0;
-        if (previousPositions.length != 0) {
-            for (const i in previousPositions) {
-                alpha = lerp(alpha, 0.2, 0.2);
-                debug_draw(previousPositions[i].x, previousPositions[i].y, 64, 128, alpha);
-            }
+        for (const id in backEndPlayerStates) {
+            let backEndPlayer = backEndPlayerStates[id]
+            debug_draw(backEndPlayer.x, backEndPlayer.y, 64, 128)
         }
     }
 
@@ -362,7 +351,9 @@ window.addEventListener('keyup', (event) => {
     inputsToProcess.push(input);
 });
 
-function lerp(a, b, alpha) {
-    if (a > b - 0.01 && a < b + 0.01) return b;
-    return a + alpha * (b - a);
+function debug_draw(x, y, width, height) {
+    c.beginPath();
+    c.fillStyle = `rgba(0, 0, 0, 0.5)`;
+    c.fillRect(x, y, width, height);
+    c.restore();
 }
