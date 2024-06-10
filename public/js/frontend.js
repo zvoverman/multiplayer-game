@@ -21,8 +21,6 @@ let backEndPlayerStates = {};
 let inputsToProcess = [];
 let playerInputs = [];
 
-let sequenceNumber = 1;
-
 // debug function toggles
 let show_debug_draw = false;
 let server_reconciliation = true;
@@ -246,6 +244,7 @@ const keys = {
 window.addEventListener('keydown', (event) => {
     if (!frontEndPlayers[socket.id]) return;
 
+    let player = frontEndPlayers[socket.id]
     input = { id: socket.id, dy: 0, dx: 0 };
 
     switch (event.code) {
@@ -256,7 +255,8 @@ window.addEventListener('keydown', (event) => {
             } else {
                 input.event = 'Jump';
                 input.dy = -1;
-                input.sequenceNumber = sequenceNumber++;
+                player.sequenceNumber++
+                input.sequenceNumber = player.sequenceNumber;
                 keys.w.pressed = true;
 
                 frontEndPlayers[socket.id].canJump = false;
@@ -269,7 +269,8 @@ window.addEventListener('keydown', (event) => {
             } else {
                 input.event = 'Run';
                 input.dx = -1;
-                input.sequenceNumber = sequenceNumber++;
+                player.sequenceNumber++
+                input.sequenceNumber = player.sequenceNumber;
                 keys.a.pressed = true;
             }
             break;
@@ -280,7 +281,8 @@ window.addEventListener('keydown', (event) => {
             } else {
                 input.event = 'Run';
                 input.dx = 1;
-                input.sequenceNumber = sequenceNumber++;
+                player.sequenceNumber++
+                input.sequenceNumber = player.sequenceNumber;
                 keys.d.pressed = true;
             }
             break;
@@ -311,7 +313,8 @@ window.addEventListener('keydown', (event) => {
 window.addEventListener('keyup', (event) => {
     if (!frontEndPlayers[socket.id]) return;
 
-    input = { id: socket.id, dy: 0, dx: 0 };
+    let player = frontEndPlayers[socket.id]
+    let input = { id: socket.id, dy: 0, dx: 0 };
 
     switch (event.code) {
         case 'KeyW':
@@ -321,10 +324,12 @@ window.addEventListener('keyup', (event) => {
             if (keys.d.pressed) {
                 input.event = 'Run';
                 input.dx = 1;
-                input.sequenceNumber = sequenceNumber++;
+                player.sequenceNumber++
+                input.sequenceNumber = player.sequenceNumber;
             } else {
                 input.event = 'Stop';
-                input.sequenceNumber = sequenceNumber++;
+                player.sequenceNumber++
+                input.sequenceNumber = player.sequenceNumber;
             }
             keys.a.pressed = false;
             break;
@@ -333,10 +338,12 @@ window.addEventListener('keyup', (event) => {
             if (keys.a.pressed) {
                 input.event = 'Run';
                 input.dx = -1;
-                input.sequenceNumber = sequenceNumber++;
+                player.sequenceNumber++
+                input.sequenceNumber = player.sequenceNumber;
             } else {
                 input.event = 'Stop';
-                input.sequenceNumber = sequenceNumber++;
+                player.sequenceNumber++
+                input.sequenceNumber = player.sequenceNumber;
             }
             keys.d.pressed = false;
             break;
