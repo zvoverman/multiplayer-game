@@ -60,7 +60,7 @@ io.on('connection', (socket) => {
 		io.emit('updatePlayers', backEndPlayers);
 	});
 
-	const FAKE_LAG = true;
+	const FAKE_LAG = false;
 	socket.on('sendInput', (input) => {
 		// Simulate network latency for testing
 		if (FAKE_LAG) {
