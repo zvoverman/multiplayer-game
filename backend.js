@@ -61,17 +61,9 @@ io.on('connection', (socket) => {
 		io.emit('updatePlayers', backEndPlayers);
 	});
 
-	const FAKE_LAG = false;
 	socket.on('sendInput', (input) => {
-		// Simulate network latency for testing
-		if (FAKE_LAG) {
-			const delay = 200;
-			setTimeout(() => {
-				inputQueue.push(input);
-			}, delay);
-		} else {
-			inputQueue.push(input);
-		}
+		console.log(input)
+		inputQueue.push(input);
 	});
 });
 
