@@ -102,12 +102,6 @@ function processInputs(now_ts) {
 		backEndPlayer.sequenceNumber = input.sequenceNumber;
 		backEndPlayer.timestamp = input.timestamp; // client pressed input timestamp
 		backEndPlayer.server_timestamp = now_ts;   // server received input timestamp
-
-		// // deal with >2 inputs in a single loop iteration
-		// if (inputQueue.length >= 1) {
-		// 	let delta = (inputQueue[0].timestamp - backEndPlayer.timestamp) / 1000.0;
-		// 	move_player(backEndPlayer, delta);
-		// }
 	}
 }
 
