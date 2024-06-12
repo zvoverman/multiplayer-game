@@ -5,7 +5,9 @@
     },
     "scripts": {
         "start": "node backend.js",
-        "prettier": "npx prettier -w ."
+        "prettier": "npx prettier -w .",
+        "start-ec2": "./scripts/start-ec2.sh",
+        "stop-ec2": "./scripts/stop-ec2.sh"
     },
     "devDependencies": {
         "prettier": "3.2.5"

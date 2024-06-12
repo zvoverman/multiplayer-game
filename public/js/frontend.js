@@ -54,6 +54,7 @@ function processInputs(delta_time, timestamp) {
         input.timestamp = timestamp;
 
         socket.emit('sendInput', input); // send processed input to server
+        console.log(input);
 
         playerInputs.push(input); // save input for Server Reconciliation
     }
