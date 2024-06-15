@@ -1,5 +1,4 @@
 .ds_store
-node_modules
 .env
-scripts
+node_modules
 package-lock.json
