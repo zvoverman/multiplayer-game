@@ -8,8 +8,10 @@
     "scripts": {
         "start": "node backend.js",
         "prettier": "npx prettier -w .",
-        "start-ec2": "dotenv -e .env bash ./scripts/ec2.sh",
-        "stop-ec2": "dotenv -e .env bash ./scripts/stop-ec2.sh"
+        "start-ec2": "scripts/start-ec2.sh",
+        "stop-ec2": "scripts/stop-ec2.sh",
+        "update-ec2": "scripts/update-ec2.sh",
+        "deploy": "scripts/deploy-ec2.sh"
     },
     "devDependencies": {
         "prettier": "3.2.5"

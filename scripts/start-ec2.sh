@@ -52,34 +52,4 @@ sleep 30
 
 # SSH into the instance and install Node.js
 echo "Connecting to instance via SSH and installing Node.js..."
-ssh -i ~/.ssh/$KEY_NAME.pem $SSH_USER@$INSTANCE_PUBLIC_DNS 'bash -s' < scripts/install.sh
-
-#
-# TERMINATE the EC2 instance
-#
-
-# check the current state of the instance
-echo "Checking the current state of the instance $INSTANCE_ID..."
-instance_state=$(aws ec2 describe-instances --instance-ids $INSTANCE_ID --query "Reservations[*].Instances[*].State.Name" --output text)
-
-if [ "$instance_state" == "terminated" ]; then
-    echo "Instance $INSTANCE_ID is already terminated."
-    exit 0
-fi
-
-if [ "$instance_state" != "running" ]; then
-    echo "Instance $INSTANCE_ID is not in a running state. Current state: $instance_state"
-    exit 1
-fi
-
-# attempt to terminate the instance
-echo "Terminating instance $INSTANCE_ID..."
-aws ec2 terminate-instances --instance-ids $INSTANCE_ID
-
-# wait for the instance to be terminated
-echo "Waiting for instance $INSTANCE_ID to terminate..."
-aws ec2 wait instance-terminated --instance-ids $INSTANCE_ID
-
-echo "Instance $INSTANCE_ID has been terminated successfully."
-
-exit 0
+ssh -i ~/.ssh/$KEY_NAME.pem $SSH_USER@$INSTANCE_PUBLIC_DNS 'bash -s' < scripts/server/install.sh

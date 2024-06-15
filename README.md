@@ -38,3 +38,48 @@ Steps on how to install and run the game locally.
     ```bash
     npm run start
     ```
+
+## AWS Automation
+### Development
+
+1. Create a dotenv (.env) file
+    ```bash
+    INSTANCE_TYPE=""
+    SECURITY_GROUP=""
+    REGION=""
+    OWNER_ID=""
+    SSH_USER=""
+    KEY_NAME=""
+    ```
+
+2. Run Express.js Server on an EC2 Instance
+    ```bash
+    npm run start-ec2
+    ```
+
+3. Update Server Packages and Pull New Game Code
+    ```bash
+    npm run update-ec2
+    ```
+
+4. Terminate Last Created EC2 Instance
+    ```bash
+    npm run stop-ec2
+    ```
+
+### Deployment
+
+1. Create a dotenv (.env) file
+    ```bash
+    INSTANCE_TYPE=""
+    SECURITY_GROUP=""
+    REGION=""
+    OWNER_ID=""
+    SSH_USER=""
+    KEY_NAME=""
+    ```
+
+2. Create Instance, Start Express.js Server, and Terminate Instance (Ctrl+C)
+    ```bash
+    npm run deploy
+    ```
