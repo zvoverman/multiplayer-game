@@ -8,7 +8,7 @@
     "scripts": {
         "start": "node backend.js",
         "prettier": "npx prettier -w .",
-        "start-ec2": "dotenv -e .env bash ./scripts/start-ec2.sh",
+        "start-ec2": "dotenv -e .env bash ./scripts/ec2.sh",
         "stop-ec2": "dotenv -e .env bash ./scripts/stop-ec2.sh"
     },
     "devDependencies": {

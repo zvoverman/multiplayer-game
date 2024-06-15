@@ -20,7 +20,7 @@ Steps on how to install and run the game locally.
 
 1. Install [Node.js](https://nodejs.org/en/download/package-manager)
 
-### Installation
+### Local Installation
 
 1. Clone the Repo
 
