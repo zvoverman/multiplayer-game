@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 . .env
 
 # Fetch the instance ID and public DNS name of the last started running EC2 instance
@@ -24,4 +25,4 @@ echo "Instance ID: $INSTANCE_ID"
 echo "Public DNS: $PUBLIC_DNS"
 
 # SSH into the instance
-ssh -i ~/.ssh/$KEY_NAME.pem $SSH_USER@$PUBLIC_DNS 'bash -s' < scripts/server/update.sh
+ssh -o StrictHostKeyChecking=no -i ~/.ssh/$KEY_NAME.pem $SSH_USER@$PUBLIC_DNS 'bash -s' < scripts/server/update.sh

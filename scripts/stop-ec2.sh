@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Fetch the instance ID of the last started running EC2 instance
 LAST_STARTED_INSTANCE_ID=$(aws ec2 describe-instances \
