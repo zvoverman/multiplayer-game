@@ -64,7 +64,6 @@ io.on('connection', (socket) => {
 	});
 
 	socket.on('sendInput', (input) => {
-		console.log(input)
 		inputQueue.push(input);
 	});
 });
@@ -143,11 +142,11 @@ function attack(input) {
 		if (id == input.id) continue; // don't want to hit ourselves
 		const enemy_player = backEndPlayers[id];
 		if (check_collision(player.x, player.y, player.width, player.height, enemy_player.x, enemy_player.y, enemy_player.width, enemy_player.height)) {
-			enemy_player.state = "DAMAGED";
 			enemy_player.current_health--;
 
 			if (enemy_player.current_health <= 0) {
 				respawn(id);
+				io.emit('respawnPlayer', id);
 			}
 		}
 	}

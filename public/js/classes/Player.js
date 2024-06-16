@@ -19,7 +19,6 @@ class Player {
         this.canJump = false;
         this.flipX = 0;
         this.current_health = max_health;
-        this.state = "GAMING";
 
         // Default last direction to right
         this.lastDirection = 1; // 1 for right, -1 for left

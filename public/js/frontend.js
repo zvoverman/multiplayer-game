@@ -28,6 +28,12 @@ socket.on('updatePlayers', (backEndPlayers) => {
     backEndPlayerStates = backEndPlayers;
 });
 
+socket.on('respawnPlayer', (id) => {
+    let player = frontEndPlayers[id];
+    player.sequenceNumber = 0;
+    playerInputs = [];
+});
+
 // frontend main game loop
 function gameLoop(current_timestamp) {
     // calculate delta since last loop
@@ -54,8 +60,6 @@ function processInputs(delta_time, timestamp) {
         input.timestamp = timestamp;
 
         socket.emit('sendInput', input); // send processed input to server
-        console.log(input);
-
         playerInputs.push(input); // save input for Server Reconciliation
     }
     inputsToProcess = [];
@@ -76,18 +80,19 @@ function updatePlayers(delta_time, timestamp_now) {
                 dy: backEndPlayer.dy,
                 width: backEndPlayer.width,
                 height: backEndPlayer.height,
-                character_number: backEndPlayer. character_number,
+                character_number: backEndPlayer.character_number,
             });
         } else {
             if (id === socket.id) {
                 let player = frontEndPlayers[id]
-                // Received the authoritative position of this client's entity.
+                // Received the authoritative state of this client's entity.
                 player.x = backEndPlayer.x;
                 player.y = backEndPlayer.y;
                 player.dx = backEndPlayer.dx;
                 player.dy = backEndPlayer.dy;
                 player.canJump = backEndPlayer.canJump;
                 player.gravity = backEndPlayer.gravity;
+                player.current_health = backEndPlayer.current_health;
 
                 if (server_reconciliation) {
                     reconciliate(player, backEndPlayer, timestamp_now, delta_time)
