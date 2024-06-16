@@ -233,15 +233,31 @@ const keys = {
     },
 };
 
+window.addEventListener('mousedown', (event) => {
+    if (!frontEndPlayers[socket.id]) return;
+
+    let player = frontEndPlayers[socket.id];
+    input = { id: socket.id, dy: 0, dx: 0 };
+
+    switch (event.buttons) {
+        case 1:
+            input.event = 'Attack';
+            player.sequenceNumber++;
+            input.sequenceNumber = player.sequenceNumber;
+            break;
+    }
+    if (!input.event) return;
+    inputsToProcess.push(input);
+});
+
 window.addEventListener('keydown', (event) => {
     if (!frontEndPlayers[socket.id]) return;
 
-    let player = frontEndPlayers[socket.id]
+    let player = frontEndPlayers[socket.id];
     input = { id: socket.id, dy: 0, dx: 0 };
 
     switch (event.code) {
         case 'KeyW':
-            // TODO: Check floor collision on client side -> if keys.w.pressed when floor is hit JUMP
             if (keys.w.pressed || !frontEndPlayers[socket.id].canJump) {
                 return;
             } else {

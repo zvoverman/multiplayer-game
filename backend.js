@@ -20,6 +20,7 @@ const JUMP_FORCE = 400;
 const WIDTH = 64;
 const HEIGHT = 64;
 const GRAVITY_CONSTANT = 2000;
+const MAX_HEALTH = 1;
 
 const CANVAS = {
 	width: 1024,
@@ -49,6 +50,7 @@ io.on('connection', (socket) => {
 		timestamp: 0,
 		gravity: 0,
 		canJump: false,
+		current_health: MAX_HEALTH,
 		character_number: 65 * Math.floor(Math.random() * 4),
 		server_timestamp: 0,
 		time_since_input: 0,
@@ -97,6 +99,8 @@ function processInputs(now_ts) {
 		} else if (input.event === 'Jump' && backEndPlayer.canJump == true) {
 			backEndPlayer.canJump = false;
 			backEndPlayer.dy = input.dy * JUMP_FORCE;
+		} else if (input.event === 'Attack') {
+			attack(input);
 		}
 
 		backEndPlayer.sequenceNumber = input.sequenceNumber;
@@ -132,9 +136,55 @@ function physics(now_ts, delta_time) {
 	}
 }
 
-function move_player(player, timestep) {
-	player.x += player.dx * timestep;
-	player.y += player.dy * timestep;
+function attack(input) {
+	const player = backEndPlayers[input.id];
+
+	for (const id in backEndPlayers) {
+		if (id == input.id) continue; // don't want to hit ourselves
+		const enemy_player = backEndPlayers[id];
+		if (check_collision(player.x, player.y, player.width, player.height, enemy_player.x, enemy_player.y, enemy_player.width, enemy_player.height)) {
+			enemy_player.state = "DAMAGED";
+			enemy_player.current_health--;
+
+			if (enemy_player.current_health <= 0) {
+				respawn(id);
+			}
+		}
+	}
+}
+
+// TODO: check for multiple collisions (currently returns true at first collision)
+function check_collision(ax, ay, aw, ah, bx, by, bw, bh) {
+	if (((ax >= bx && ax <= bx + bw) 
+			|| (ax + aw >= bx && ax + aw <= bx + bw))
+		&& ((ay >= by && ay <= by + bh)
+			|| (ay + ah >= by && ay + ah <= by + bh))) {
+		// objects are colliding
+		return true;
+	}
+	else false;
+}
+
+function respawn(id) {
+	backEndPlayers[id] = {
+		x: CANVAS.width * Math.random(),
+		y: CANVAS.height * Math.random(),
+		dx: 0,
+		dy: 0,
+		target_dx: 0,
+		target_dy: 0,
+		width: WIDTH,
+		height: HEIGHT,
+		color: 'rgba(0, 0, 255, 1)',
+		sequenceNumber: 0,
+		timestamp: 0,
+		gravity: 0,
+		canJump: false,
+		current_health: MAX_HEALTH,
+		character_number: 65 * Math.floor(Math.random() * 4),
+		server_timestamp: 0,
+		time_since_input: 0,
+	};
 }
 
 server.listen(port, () => {

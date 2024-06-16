@@ -7,6 +7,9 @@ class Player {
         this.height = height;
         this.character_number = character_number;
 
+        // constants
+        const max_health = 1;
+
         // initialize other variables
         this.dx = 0;
         this.dy = 0;
@@ -15,6 +18,8 @@ class Player {
         this.sequenceNumber = 0;
         this.canJump = false;
         this.flipX = 0;
+        this.current_health = max_health;
+        this.state = "GAMING";
 
         // Default last direction to right
         this.lastDirection = 1; // 1 for right, -1 for left
