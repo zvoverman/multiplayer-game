@@ -80,11 +80,9 @@ setInterval(() => {
 
 	physics(now_ts, delta_time); // calculate backend state
 
-}, 15); // 60 fps
-
-setInterval(() => {
 	io.emit('updatePlayers', backEndPlayers); // send authoritative state to client
-}, 60);
+
+}, 15); // 60 fps
 
 function processInputs(now_ts) {
 	// process all inputs in queue
