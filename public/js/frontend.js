@@ -139,9 +139,9 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
             let time_since_last_input = 0;
             if (playerInputs[j + 1]) {
                 time_since_last_input =
-                    (playerInputs[j + 1].timestamp - (input.timestamp + backEndPlayer.time_since_input)) / 1000 - delta_time;
+                    (playerInputs[j + 1].timestamp - (input.timestamp + backEndPlayer.time_since_input)) / 1000; // - delta_time
             } else {
-                time_since_last_input = (timestamp_now - (input.timestamp + backEndPlayer.time_since_input)) / 1000 - delta_time;
+                time_since_last_input = (timestamp_now - (input.timestamp + backEndPlayer.time_since_input)) / 1000; // - delta_time
             }
 
             move_player(player, time_since_last_input)
