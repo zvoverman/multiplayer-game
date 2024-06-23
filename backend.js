@@ -125,6 +125,8 @@ function physics(now_ts, delta_time) {
 
 		// Player movement
 		backEndPlayer.x += backEndPlayer.dx * delta_time;
+		backEndPlayer.dy += GRAVITY_CONSTANT * delta_time;
+		backEndPlayer.y += backEndPlayer.dy * delta_time;
 
 		// floor check
 		if (backEndPlayer.y + backEndPlayer.height + backEndPlayer.dy * delta_time >= CANVAS.height) {
@@ -132,8 +134,7 @@ function physics(now_ts, delta_time) {
 			backEndPlayer.dy = 0;
 			backEndPlayer.y = CANVAS.height - backEndPlayer.height;
 		} else {
-			backEndPlayer.dy += GRAVITY_CONSTANT * delta_time;
-			backEndPlayer.y += backEndPlayer.dy * delta_time;
+			backEndPlayer.canJump = false;
 		}
 
 		if (backEndPlayer.just_damaged) {

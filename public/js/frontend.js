@@ -180,19 +180,6 @@ function move_player(player, timestep) {
     checkGravity(player);
 }
 
-function checkGravity(player) {
-    if (!player) return;
-
-    // Is player on floor?
-    if (player.y + player.height >= canvas.height) {
-        player.canJump = true;
-        player.dy = 0;
-        player.y = canvas.height - player.height;
-    } else {
-        player.canJump = false;
-    }
-}
-
 function physics(delta_time) {
     if (!frontEndPlayers[socket.id]) return;
 
@@ -213,6 +200,19 @@ function render() {
     for (const id in frontEndPlayers) {
         const frontEndPlayer = frontEndPlayers[id];
         frontEndPlayer.draw();
+    }
+}
+
+function checkGravity(player) {
+    if (!player) return;
+
+    // Is player on floor?
+    if (player.y + player.height >= canvas.height) {
+        player.canJump = true;
+        player.dy = 0;
+        player.y = canvas.height - player.height;
+    } else {
+        player.canJump = false;
     }
 }
 
