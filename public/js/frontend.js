@@ -149,8 +149,12 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
 
         } else {
             // Not processed by the server yet. Re-apply all of it.
-            if (input.event === 'Run' || input.event === 'Stop') {
-                player.dx = input.dx * SPEED;
+            if (input.event === 'Stop') {
+                player.dx = 0;
+            } else if (input.event === 'Run_Right') {
+                player.dx = SPEED;
+            } else if (input.event === 'Run_Left') {
+                player.dx = -SPEED;
             } else if (input.event === 'Jump') {
                 player.dy = input.dy * JUMP_FORCE;
             }
@@ -280,8 +284,7 @@ window.addEventListener('keydown', (event) => {
             if (keys.a.pressed) {
                 return;
             } else {
-                input.event = 'Run';
-                input.dx = -1;
+                input.event = 'Run_Left';
                 player.sequenceNumber++
                 input.sequenceNumber = player.sequenceNumber;
                 keys.a.pressed = true;
@@ -292,8 +295,7 @@ window.addEventListener('keydown', (event) => {
             if (keys.d.pressed) {
                 return;
             } else {
-                input.event = 'Run';
-                input.dx = 1;
+                input.event = 'Run_Right';
                 player.sequenceNumber++
                 input.sequenceNumber = player.sequenceNumber;
                 keys.d.pressed = true;
@@ -336,7 +338,6 @@ window.addEventListener('keyup', (event) => {
         case 'KeyA':
             if (keys.d.pressed) {
                 input.event = 'Run';
-                input.dx = 1;
                 player.sequenceNumber++
                 input.sequenceNumber = player.sequenceNumber;
             } else {
@@ -350,7 +351,6 @@ window.addEventListener('keyup', (event) => {
         case 'KeyD':
             if (keys.a.pressed) {
                 input.event = 'Run';
-                input.dx = -1;
                 player.sequenceNumber++
                 input.sequenceNumber = player.sequenceNumber;
             } else {

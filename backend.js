@@ -54,6 +54,9 @@ io.on('connection', (socket) => {
 		character_number: 65 * Math.floor(Math.random() * 4),
 		server_timestamp: 0,
 		time_since_input: 0,
+		just_damaged: false,
+		x_force: 0,
+		y_force: 0
 	};
 
 	// cleanly remove player on socket disconnect
@@ -94,11 +97,15 @@ function processInputs(now_ts) {
 		const backEndPlayer = backEndPlayers[input.id];
 
 		// filter input event type
-		if (input.event === 'Run' || input.event === 'Stop') {
-			backEndPlayer.dx = input.dx * SPEED;
+		if (input.event === 'Stop') {
+			backEndPlayer.dx = 0;
+		} else if (input.event === 'Run_Right') {
+			backEndPlayer.dx = SPEED;
+		} else if (input.event === 'Run_Left') {
+			backEndPlayer.dx = -SPEED;
 		} else if (input.event === 'Jump' && backEndPlayer.canJump == true) {
 			backEndPlayer.canJump = false;
-			backEndPlayer.dy = input.dy * JUMP_FORCE;
+			backEndPlayer.dy = -JUMP_FORCE;
 		} else if (input.event === 'Attack') {
 			attack(input);
 		}
@@ -129,6 +136,10 @@ function physics(now_ts, delta_time) {
 			backEndPlayer.gravity += GRAVITY_CONSTANT * delta_time;
 		}
 
+		if (backEndPlayer.just_damaged) {
+			backEndPlayer.x_force = lerp(backEndPlayer.x_force, 0, 0.5)
+		}
+
 		// TODO: find a better way to deal with this
 		if (backEndPlayer.server_timestamp !== 0)
 			// if player has just been initialized, don't update time_since_input
@@ -144,6 +155,7 @@ function attack(input) {
 		const enemy_player = backEndPlayers[id];
 		if (check_collision(player.x, player.y, player.width, player.height, enemy_player.x, enemy_player.y, enemy_player.width, enemy_player.height)) {
 			enemy_player.current_health--;
+			enemy_player.just_damaged = true;
 
 			if (enemy_player.current_health <= 0) {
 				respawn(id);
@@ -186,6 +198,11 @@ function respawn(id) {
 		time_since_input: 0,
 	};
 }
+
+function lerp(start, end, a) {
+    return start + (end - start) * a;
+}
+
 
 server.listen(port, () => {
 	console.log(`Example app listening on port http://localhost:${port}`);
