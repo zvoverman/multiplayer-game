@@ -13,7 +13,6 @@ class Player {
         // initialize other variables
         this.dx = 0;
         this.dy = 0;
-        this.gravity = 0;
         this.timestamp = 0;
         this.sequenceNumber = 0;
         this.canJump = false;

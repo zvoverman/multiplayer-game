@@ -5,13 +5,12 @@ const c = canvas.getContext('2d');
 canvas.width = 1024
 canvas.height = 576
 
-
 const socket = io();
 
 // player constants
-const SPEED = 500;
-const JUMP_FORCE = 400;
-const GRAVITY_CONSTANT = 2000;
+const SPEED = 600;
+const JUMP_FORCE = 1000;
+const GRAVITY_CONSTANT = 3000;
 
 // track state
 let frontEndPlayers = {};
@@ -91,7 +90,6 @@ function updatePlayers(delta_time, timestamp_now) {
                 player.dx = backEndPlayer.dx;
                 player.dy = backEndPlayer.dy;
                 player.canJump = backEndPlayer.canJump;
-                player.gravity = backEndPlayer.gravity;
                 player.current_health = backEndPlayer.current_health;
 
                 if (server_reconciliation) {
@@ -109,7 +107,6 @@ function updatePlayers(delta_time, timestamp_now) {
                 player.dx = backEndPlayer.dx;
                 player.dy = backEndPlayer.dy;
                 player.canJump = backEndPlayer.canJump;
-                player.gravity = backEndPlayer.gravity;
             }
         }
     }
@@ -177,9 +174,8 @@ function move_player(player, timestep) {
     player.x += player.dx * timestep;
 
     // Calculate y pos
-    player.dy += player.gravity * timestep;
+    player.dy += GRAVITY_CONSTANT * timestep;
     player.y += player.dy * timestep;
-    player.gravity += GRAVITY_CONSTANT * timestep;
 
     checkGravity(player);
 }
@@ -192,7 +188,6 @@ function checkGravity(player) {
         player.canJump = true;
         player.dy = 0;
         player.y = canvas.height - player.height;
-        player.gravity = 0;
     } else {
         player.canJump = false;
     }

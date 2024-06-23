@@ -15,13 +15,16 @@ app.get('/', (req, res) => {
 });
 
 // player constants
-const SPEED = 500;
-const JUMP_FORCE = 400;
-const WIDTH = 64;
-const HEIGHT = 64;
-const GRAVITY_CONSTANT = 2000;
+const SPEED = 600;
+const JUMP_FORCE = 1000;
+const GRAVITY_CONSTANT = 3000;
 const MAX_HEALTH = 1;
 
+// player dimensions
+const WIDTH = 64;
+const HEIGHT = 64;
+
+// canvas dimensions
 const CANVAS = {
 	width: 1024,
 	height: 576
@@ -48,7 +51,6 @@ io.on('connection', (socket) => {
 		color: 'rgba(0, 0, 255, 1)',
 		sequenceNumber: 0,
 		timestamp: 0,
-		gravity: 0,
 		canJump: false,
 		current_health: MAX_HEALTH,
 		character_number: 65 * Math.floor(Math.random() * 4),
@@ -129,11 +131,9 @@ function physics(now_ts, delta_time) {
 			backEndPlayer.canJump = true;
 			backEndPlayer.dy = 0;
 			backEndPlayer.y = CANVAS.height - backEndPlayer.height;
-			backEndPlayer.gravity = 0;
 		} else {
-			backEndPlayer.dy += backEndPlayer.gravity * delta_time;
+			backEndPlayer.dy += GRAVITY_CONSTANT * delta_time;
 			backEndPlayer.y += backEndPlayer.dy * delta_time;
-			backEndPlayer.gravity += GRAVITY_CONSTANT * delta_time;
 		}
 
 		if (backEndPlayer.just_damaged) {
@@ -190,7 +190,6 @@ function respawn(id) {
 		color: 'rgba(0, 0, 255, 1)',
 		sequenceNumber: 0,
 		timestamp: 0,
-		gravity: 0,
 		canJump: false,
 		current_health: MAX_HEALTH,
 		character_number: 65 * Math.floor(Math.random() * 4),
