@@ -69,8 +69,11 @@ io.on('connection', (socket) => {
 	});
 
 	socket.on('sendInput', (input) => {
-		inputQueue.push(input);
+		setTimeout(() => {
+			inputQueue.push(input);
+		}, 0);
 	});
+	
 });
 
 // backend main game loop
@@ -129,7 +132,7 @@ function physics(now_ts, delta_time) {
 		backEndPlayer.y += backEndPlayer.dy * delta_time;
 
 		// floor check
-		if (backEndPlayer.y + backEndPlayer.height + backEndPlayer.dy * delta_time >= CANVAS.height) {
+		if (backEndPlayer.y + backEndPlayer.height >= CANVAS.height) {
 			backEndPlayer.canJump = true;
 			backEndPlayer.dy = 0;
 			backEndPlayer.y = CANVAS.height - backEndPlayer.height;

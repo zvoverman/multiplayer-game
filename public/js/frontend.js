@@ -10,7 +10,7 @@ const socket = io();
 // player constants
 const SPEED = 600;
 const JUMP_FORCE = 1000;
-const GRAVITY_CONSTANT = 3000;
+const GRAVITY_CONSTANT = 1500;
 
 // track state
 let frontEndPlayers = {};
@@ -35,6 +35,7 @@ socket.on('respawnPlayer', (id) => {
 
 // frontend main game loop
 function gameLoop(current_timestamp) {
+    console.log("loop")
     // calculate delta since last loop
     var last_timestamp = this.last_timestamp || current_timestamp;
     var delta_time = (current_timestamp - last_timestamp) / 1000.0;
@@ -124,26 +125,22 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
     while (j < playerInputs.length) {
         let input = playerInputs[j];
 
+        let time_since_last_input = 0;
         if (input.sequenceNumber < backEndPlayer.sequenceNumber) {
             // Already processed. Its effect is already taken into account into the world update we just got, so we can drop it.
             playerInputs.shift();
-
+            continue;
         } else if (input.sequenceNumber === backEndPlayer.sequenceNumber) {
             // Server currently dealing with this input. Re-apply movement since last server update.
             player.dx = backEndPlayer.dx;
             player.dy = backEndPlayer.dy;
 
-            let time_since_last_input = 0;
             if (playerInputs[j + 1]) {
                 time_since_last_input =
-                    (playerInputs[j + 1].timestamp - (input.timestamp + backEndPlayer.time_since_input)) / 1000; // - delta_time
+                    (playerInputs[j + 1].timestamp - (input.timestamp + backEndPlayer.time_since_input)) / 1000;
             } else {
-                time_since_last_input = (timestamp_now - (input.timestamp + backEndPlayer.time_since_input)) / 1000; // - delta_time
+                time_since_last_input = (timestamp_now - (input.timestamp + backEndPlayer.time_since_input)) / 1000;
             }
-
-            move_player(player, time_since_last_input)
-            j++;
-
         } else {
             // Not processed by the server yet. Re-apply all of it.
             if (input.event === 'Stop') {
@@ -153,30 +150,26 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
             } else if (input.event === 'Run_Left') {
                 player.dx = -SPEED;
             } else if (input.event === 'Jump') {
-                player.dy = input.dy * JUMP_FORCE;
+                player.dy = -JUMP_FORCE;
             }
 
-            let time_since_last_input = 0;
             if (playerInputs[j + 1]) {
                 time_since_last_input = (playerInputs[j + 1].timestamp - input.timestamp) / 1000;
             } else {
                 time_since_last_input = (timestamp_now - input.timestamp) / 1000;
             }
-
-            move_player(player, time_since_last_input)
-            j++;
         }
+        move_player(player, time_since_last_input)
+        j++;
     }
 }
 
+// TODO: move_player() called twice per loop iteration
 function move_player(player, timestep) {
-    // Calculate x pos
+    console.log("move player")
     player.x += player.dx * timestep;
-
-    // Calculate y pos
     player.dy += GRAVITY_CONSTANT * timestep;
     player.y += player.dy * timestep;
-
     checkGravity(player);
 }
 
@@ -266,12 +259,9 @@ window.addEventListener('keydown', (event) => {
                 return;
             } else {
                 input.event = 'Jump';
-                input.dy = -1;
-                player.sequenceNumber++
+                player.sequenceNumber++;
                 input.sequenceNumber = player.sequenceNumber;
                 keys.w.pressed = true;
-
-                frontEndPlayers[socket.id].canJump = false;
             }
             break;
 
@@ -280,7 +270,7 @@ window.addEventListener('keydown', (event) => {
                 return;
             } else {
                 input.event = 'Run_Left';
-                player.sequenceNumber++
+                player.sequenceNumber++;
                 input.sequenceNumber = player.sequenceNumber;
                 keys.a.pressed = true;
             }
@@ -291,7 +281,7 @@ window.addEventListener('keydown', (event) => {
                 return;
             } else {
                 input.event = 'Run_Right';
-                player.sequenceNumber++
+                player.sequenceNumber++;
                 input.sequenceNumber = player.sequenceNumber;
                 keys.d.pressed = true;
             }
@@ -333,11 +323,11 @@ window.addEventListener('keyup', (event) => {
         case 'KeyA':
             if (keys.d.pressed) {
                 input.event = 'Run';
-                player.sequenceNumber++
+                player.sequenceNumber++;
                 input.sequenceNumber = player.sequenceNumber;
             } else {
                 input.event = 'Stop';
-                player.sequenceNumber++
+                player.sequenceNumber++;
                 input.sequenceNumber = player.sequenceNumber;
             }
             keys.a.pressed = false;
@@ -346,11 +336,11 @@ window.addEventListener('keyup', (event) => {
         case 'KeyD':
             if (keys.a.pressed) {
                 input.event = 'Run';
-                player.sequenceNumber++
+                player.sequenceNumber++;
                 input.sequenceNumber = player.sequenceNumber;
             } else {
                 input.event = 'Stop';
-                player.sequenceNumber++
+                player.sequenceNumber++;
                 input.sequenceNumber = player.sequenceNumber;
             }
             keys.d.pressed = false;
