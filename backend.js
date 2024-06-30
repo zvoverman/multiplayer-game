@@ -30,6 +30,10 @@ const CANVAS = {
 	height: 576
 }
 
+// debug flags
+let simulate_latency = false;
+
+// world state
 let backEndPlayers = {};
 let inputQueue = [];
 
@@ -69,9 +73,10 @@ io.on('connection', (socket) => {
 	});
 
 	socket.on('sendInput', (input) => {
+		const delay = simulate_latency ? 200 : 0;
 		setTimeout(() => {
 			inputQueue.push(input);
-		}, 0);
+		}, delay);
 	});
 	
 });

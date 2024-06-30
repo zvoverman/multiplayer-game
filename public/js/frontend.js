@@ -10,7 +10,7 @@ const socket = io();
 // player constants
 const SPEED = 600;
 const JUMP_FORCE = 1000;
-const GRAVITY_CONSTANT = 1500;
+const GRAVITY_CONSTANT = 3000;
 
 // track state
 let frontEndPlayers = {};
@@ -35,7 +35,6 @@ socket.on('respawnPlayer', (id) => {
 
 // frontend main game loop
 function gameLoop(current_timestamp) {
-    console.log("loop")
     // calculate delta since last loop
     var last_timestamp = this.last_timestamp || current_timestamp;
     var delta_time = (current_timestamp - last_timestamp) / 1000.0;
@@ -166,7 +165,6 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
 
 // TODO: move_player() called twice per loop iteration
 function move_player(player, timestep) {
-    console.log("move player")
     player.x += player.dx * timestep;
     player.dy += GRAVITY_CONSTANT * timestep;
     player.y += player.dy * timestep;
