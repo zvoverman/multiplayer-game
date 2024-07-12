@@ -42,6 +42,7 @@ function gameLoop(current_timestamp) {
     // process queued client inputs
     processInputs(delta_time, current_timestamp);
     // perform client-side prediction, server reconciliation, (entity interpolation TODO)
+    //physics(delta_time);
     updatePlayers(delta_time, current_timestamp);
     render();
     requestAnimationFrame(gameLoop);
@@ -57,7 +58,6 @@ function processInputs(delta_time, timestamp) {
         let input = inputsToProcess[e];
         input.delta_time = delta_time;
         input.timestamp = timestamp;
-
         socket.emit('sendInput', input); // send processed input to server
         playerInputs.push(input); // save input for Server Reconciliation
     }
@@ -131,17 +131,22 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
             continue;
         } else if (input.sequenceNumber === backEndPlayer.sequenceNumber) {
             // Server currently dealing with this input. Re-apply movement since last server update.
+            if (playerInputs[j + 1]) {
+                time_since_last_input = (playerInputs[j + 1].timestamp - (input.timestamp + backEndPlayer.time_since_input)) / 1000 - delta_time;
+            } else {
+                time_since_last_input = (timestamp_now - (input.timestamp + backEndPlayer.time_since_input)) / 1000 - delta_time;
+            }
+
             player.dx = backEndPlayer.dx;
             player.dy = backEndPlayer.dy;
-
-            if (playerInputs[j + 1]) {
-                time_since_last_input =
-                    (playerInputs[j + 1].timestamp - (input.timestamp + backEndPlayer.time_since_input)) / 1000;
-            } else {
-                time_since_last_input = (timestamp_now - (input.timestamp + backEndPlayer.time_since_input)) / 1000;
-            }
         } else {
             // Not processed by the server yet. Re-apply all of it.
+            if (playerInputs[j + 1]) {
+                time_since_last_input = (playerInputs[j + 1].timestamp - input.timestamp) / 1000;
+            } else {
+                time_since_last_input = (timestamp_now - input.timestamp) / 1000;
+            }
+
             if (input.event === 'Stop') {
                 player.dx = 0;
             } else if (input.event === 'Run_Right') {
@@ -151,19 +156,13 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
             } else if (input.event === 'Jump') {
                 player.dy = -JUMP_FORCE;
             }
-
-            if (playerInputs[j + 1]) {
-                time_since_last_input = (playerInputs[j + 1].timestamp - input.timestamp) / 1000;
-            } else {
-                time_since_last_input = (timestamp_now - input.timestamp) / 1000;
-            }
         }
         move_player(player, time_since_last_input)
         j++;
     }
 }
 
-// TODO: move_player() called twice per loop iteration
+
 function move_player(player, timestep) {
     player.x += player.dx * timestep;
     player.dy += GRAVITY_CONSTANT * timestep;
@@ -171,11 +170,17 @@ function move_player(player, timestep) {
     checkGravity(player);
 }
 
-function physics(delta_time) {
-    if (!frontEndPlayers[socket.id]) return;
+function checkGravity(player) {
+    if (!player) return;
 
     // Is player on floor?
-    checkGravity(frontEndPlayers[socket.id]);
+    if (player.y + player.height >= canvas.height) {
+        player.canJump = true;
+        player.dy = 0;
+        player.y = canvas.height - player.height;
+    } else {
+        player.canJump = false;
+    }
 }
 
 function render() {
@@ -191,19 +196,6 @@ function render() {
     for (const id in frontEndPlayers) {
         const frontEndPlayer = frontEndPlayers[id];
         frontEndPlayer.draw();
-    }
-}
-
-function checkGravity(player) {
-    if (!player) return;
-
-    // Is player on floor?
-    if (player.y + player.height >= canvas.height) {
-        player.canJump = true;
-        player.dy = 0;
-        player.y = canvas.height - player.height;
-    } else {
-        player.canJump = false;
     }
 }
 
