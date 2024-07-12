@@ -186,16 +186,23 @@ function checkGravity(player) {
 function render() {
     c.clearRect(0, 0, canvas.width, canvas.height);
 
+    // draw immediately consumed backend position
     if (show_debug_draw) {
         for (const id in backEndPlayerStates) {
-            let backEndPlayer = backEndPlayerStates[id]
-            debug_draw(backEndPlayer.x, backEndPlayer.y, backEndPlayer.width, backEndPlayer.height)
+            let player = backEndPlayerStates[id]
+            debug_draw(player.x, player.y, player.width, player.height)
+            velocity_vector_draw(player.x + player.width/2, player.y + player.height/2, player.x + player.dx/2 + player.width/2, player.y + player.dy/3 + player.height/2, "#0000ff")
         }
     }
 
+    // Render frontend players
     for (const id in frontEndPlayers) {
-        const frontEndPlayer = frontEndPlayers[id];
-        frontEndPlayer.draw();
+        const player = frontEndPlayers[id];
+        player.draw();
+
+        if (show_debug_draw) {
+            velocity_vector_draw(player.x + player.width/2, player.y + player.height/2, player.x + player.dx/2 + player.width/2, player.y + player.dy/3 + player.height/2, "#ff0000")
+        }
     }
 }
 
@@ -351,4 +358,15 @@ function debug_draw(x, y, width, height) {
     c.fillStyle = `rgba(0, 0, 0, 0.5)`;
     c.fillRect(x, y, width, height);
     c.restore();
+}
+
+function velocity_vector_draw(x, y, target_x, target_y, color) {
+    c.strokeStyle = color;
+    c.lineWidth = 2; 
+    c.beginPath();
+    c.moveTo(x, y);
+    c.lineTo(target_x, target_y);
+    c.stroke()
+    c.restore();
+    console.log("HERE")
 }
