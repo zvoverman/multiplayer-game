@@ -8,7 +8,7 @@ class Player {
         this.character_number = character_number;
 
         // constants
-        const max_health = 1;
+        const max_health = 3;
 
         // initialize other variables
         this.dx = 0;

@@ -74,7 +74,7 @@ echo -e "Go to ${LIGHT_CYAN}http://${INSTANCE_PUBLIC_IP}:8080${NC}\n"
 
 # Wait a bit for SSH to become available
 echo "Waiting for SSH to become available..."
-sleep 3
+sleep 10
 
 # SSH into the instance and install Node.js
 echo "Connecting to instance via SSH and installing Node.js..."

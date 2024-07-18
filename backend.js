@@ -18,7 +18,7 @@ app.get('/', (req, res) => {
 const SPEED = 600;
 const JUMP_FORCE = 1000;
 const GRAVITY_CONSTANT = 3000;
-const MAX_HEALTH = 1;
+const MAX_HEALTH = 3;
 
 // player dimensions
 const WIDTH = 64;
@@ -73,7 +73,7 @@ io.on('connection', (socket) => {
 	});
 
 	socket.on('sendInput', (input) => {
-		const delay = simulate_latency ? 200 : 0;
+		const delay = simulate_latency ? 600 : 0;
 		setTimeout(() => {
 			inputQueue.push(input);
 		}, delay);
@@ -165,6 +165,9 @@ function attack(input) {
 		if (check_collision(player.x, player.y, player.width, player.height, enemy_player.x, enemy_player.y, enemy_player.width, enemy_player.height)) {
 			enemy_player.current_health--;
 			enemy_player.just_damaged = true;
+			//knockback(enemy_player, player);
+
+			handleHit(player, enemy_player, 10);
 
 			if (enemy_player.current_health <= 0) {
 				respawn(id);
@@ -186,6 +189,16 @@ function check_collision(ax, ay, aw, ah, bx, by, bw, bh) {
 	else false;
 }
 
+// Calculate direction between bodies
+// Apply force in that direction
+function knockback(enemy_player, player) {
+	if (enemy_player.x < player.x) {
+		enemy_player.dx = -1000;
+	} else {
+		enemy_player.dx = 1000;
+	}
+}
+
 function respawn(id) {
 	backEndPlayers[id] = {
 		x: CANVAS.width * Math.random(),
@@ -205,6 +218,40 @@ function respawn(id) {
 		server_timestamp: 0,
 		time_since_input: 0,
 	};
+}
+
+// Function to calculate the direction vector
+function calculateDirectionVector(player1, player2) {
+    let directionX = player2.x - player1.x;
+    let directionY = player2.y - player1.y;
+    return { x: directionX, y: directionY };
+}
+
+// Function to normalize a vector
+function normalizeVector(vector) {
+    let magnitude = Math.sqrt(vector.x * vector.x + vector.y * vector.y);
+    return { x: vector.x / magnitude, y: vector.y / magnitude };
+}
+
+// Function to apply force to the player being hit
+function applyForce(player, forceVector, forceMagnitude) {
+    player.dx += forceVector.x * forceMagnitude;
+    player.dy += forceVector.y * forceMagnitude;
+}
+
+// Main function to handle the hit
+function handleHit(player1, player2, forceMagnitude) {
+    // Calculate direction vector from player1 to player2
+    let directionVector = calculateDirectionVector(player1, player2);
+    
+    // Normalize the direction vector
+    let normalizedDirection = normalizeVector(directionVector);
+    
+    // Reverse the direction for applying force to player2 (the one being hit)
+    let forceVector = { x: -normalizedDirection.x, y: -normalizedDirection.y };
+    
+    // Apply the force to player2
+    applyForce(player2, forceVector, forceMagnitude);
 }
 
 function lerp(start, end, a) {

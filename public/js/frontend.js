@@ -124,7 +124,7 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
     while (j < playerInputs.length) {
         let input = playerInputs[j];
 
-        let time_since_last_input = 0;
+        let timestep = 0;
         if (input.sequenceNumber < backEndPlayer.sequenceNumber) {
             // Already processed. Its effect is already taken into account into the world update we just got, so we can drop it.
             playerInputs.shift();
@@ -132,9 +132,9 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
         } else if (input.sequenceNumber === backEndPlayer.sequenceNumber) {
             // Server currently dealing with this input. Re-apply movement since last server update.
             if (playerInputs[j + 1]) {
-                time_since_last_input = (playerInputs[j + 1].timestamp - (input.timestamp + backEndPlayer.time_since_input)) / 1000 - delta_time;
+                timestep = (playerInputs[j + 1].timestamp - (input.timestamp + backEndPlayer.time_since_input)) / 1000 - delta_time;
             } else {
-                time_since_last_input = (timestamp_now - (input.timestamp + backEndPlayer.time_since_input)) / 1000 - delta_time;
+                timestep = (timestamp_now - (input.timestamp + backEndPlayer.time_since_input)) / 1000 - delta_time;
             }
 
             player.dx = backEndPlayer.dx;
@@ -142,9 +142,9 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
         } else {
             // Not processed by the server yet. Re-apply all of it.
             if (playerInputs[j + 1]) {
-                time_since_last_input = (playerInputs[j + 1].timestamp - input.timestamp) / 1000;
+                timestep = (playerInputs[j + 1].timestamp - input.timestamp) / 1000;
             } else {
-                time_since_last_input = (timestamp_now - input.timestamp) / 1000;
+                timestep = (timestamp_now - input.timestamp) / 1000;
             }
 
             if (input.event === 'Stop') {
@@ -157,16 +157,22 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
                 player.dy = -JUMP_FORCE;
             }
         }
-        move_player(player, time_since_last_input)
+        move_player(player, timestep)
         j++;
     }
 }
 
 
 function move_player(player, timestep) {
-    player.x += player.dx * timestep;
-    player.dy += GRAVITY_CONSTANT * timestep;
-    player.y += player.dy * timestep;
+    // // Euler integration
+    // player.x += player.dx * timestep;
+    // player.y += player.dy * timestep;
+    // player.dy += GRAVITY_CONSTANT * timestep;
+    player.x += player.dx * timestep
+
+    // Verlet integration
+    player.y += timestep * (player.dy + timestep * GRAVITY_CONSTANT / 2)
+    player.dy += timestep * GRAVITY_CONSTANT;
     checkGravity(player);
 }
 
@@ -175,6 +181,7 @@ function checkGravity(player) {
 
     // Is player on floor?
     if (player.y + player.height >= canvas.height) {
+        //console.log(player.y)
         player.canJump = true;
         player.dy = 0;
         player.y = canvas.height - player.height;
@@ -191,7 +198,7 @@ function render() {
         for (const id in backEndPlayerStates) {
             let player = backEndPlayerStates[id]
             debug_draw(player.x, player.y, player.width, player.height)
-            velocity_vector_draw(player.x + player.width/2, player.y + player.height/2, player.x + player.dx/2 + player.width/2, player.y + player.dy/3 + player.height/2, "#0000ff")
+            velocity_vector_draw(player.x + player.width/2, player.y + player.height/2, player.x + player.dx/2 + player.width/2, player.y + player.dy/4 + player.height/2, "#0000ffaf")
         }
     }
 
@@ -201,7 +208,7 @@ function render() {
         player.draw();
 
         if (show_debug_draw) {
-            velocity_vector_draw(player.x + player.width/2, player.y + player.height/2, player.x + player.dx/2 + player.width/2, player.y + player.dy/3 + player.height/2, "#ff0000")
+            velocity_vector_draw(player.x + player.width/2, player.y + player.height/2, player.x + player.dx/2 + player.width/2, player.y + player.dy/4 + player.height/2, "#ff0000af")
         }
     }
 }
@@ -368,5 +375,4 @@ function velocity_vector_draw(x, y, target_x, target_y, color) {
     c.lineTo(target_x, target_y);
     c.stroke()
     c.restore();
-    console.log("HERE")
 }
