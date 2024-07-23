@@ -11,6 +11,8 @@ const socket = io();
 const SPEED = 600;
 const JUMP_FORCE = 1000;
 const GRAVITY_CONSTANT = 3000;
+const GROUND_FRICTION = 1000;
+const AIR_FRICTION = 500;
 
 // track state
 let frontEndPlayers = {};
@@ -91,6 +93,7 @@ function updatePlayers(delta_time, timestamp_now) {
                 player.dy = backEndPlayer.dy;
                 player.canJump = backEndPlayer.canJump;
                 player.current_health = backEndPlayer.current_health;
+                player.can_move = !backEndPlayer.just_damaged;
 
                 if (server_reconciliation) {
                     reconciliate(player, backEndPlayer, timestamp_now, delta_time)
@@ -107,6 +110,7 @@ function updatePlayers(delta_time, timestamp_now) {
                 player.dx = backEndPlayer.dx;
                 player.dy = backEndPlayer.dy;
                 player.canJump = backEndPlayer.canJump;
+                player.can_move = !backEndPlayer.just_damaged;
             }
         }
     }
@@ -137,8 +141,8 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
                 timestep = (timestamp_now - (input.timestamp + backEndPlayer.time_since_input)) / 1000 - delta_time;
             }
 
-            player.dx = backEndPlayer.dx;
-            player.dy = backEndPlayer.dy;
+            player.target_dx = backEndPlayer.dx;
+            player.target_dy = backEndPlayer.dy;
         } else {
             // Not processed by the server yet. Re-apply all of it.
             if (playerInputs[j + 1]) {
@@ -148,11 +152,11 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
             }
 
             if (input.event === 'Stop') {
-                player.dx = 0;
+                player.target_dx = 0.0;
             } else if (input.event === 'Run_Right') {
-                player.dx = SPEED;
+                player.target_dx = SPEED;
             } else if (input.event === 'Run_Left') {
-                player.dx = -SPEED;
+                player.target_dx = -SPEED;
             } else if (input.event === 'Jump') {
                 player.dy = -JUMP_FORCE;
             }
@@ -162,13 +166,9 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
     }
 }
 
-
 function move_player(player, timestep) {
-    // // Euler integration
-    // player.x += player.dx * timestep;
-    // player.y += player.dy * timestep;
-    // player.dy += GRAVITY_CONSTANT * timestep;
-    player.x += player.dx * timestep
+
+    player.x += timestep * player.target_dx
 
     // Verlet integration
     player.y += timestep * (player.dy + timestep * GRAVITY_CONSTANT / 2)
@@ -375,4 +375,8 @@ function velocity_vector_draw(x, y, target_x, target_y, color) {
     c.lineTo(target_x, target_y);
     c.stroke()
     c.restore();
+}
+
+function lerp(start, end, a) {
+    return start + (end - start) * a;
 }

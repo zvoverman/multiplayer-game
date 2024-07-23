@@ -31,7 +31,7 @@ const CANVAS = {
 }
 
 // debug flags
-let simulate_latency = false;
+let simulate_latency = true;
 
 // world state
 let backEndPlayers = {};
@@ -61,6 +61,7 @@ io.on('connection', (socket) => {
 		server_timestamp: 0,
 		time_since_input: 0,
 		just_damaged: false,
+		damaged_time: 0,
 		x_force: 0,
 		y_force: 0
 	};
@@ -73,7 +74,7 @@ io.on('connection', (socket) => {
 	});
 
 	socket.on('sendInput', (input) => {
-		const delay = simulate_latency ? 600 : 0;
+		const delay = simulate_latency ? 200 : 0;
 		setTimeout(() => {
 			inputQueue.push(input);
 		}, delay);
@@ -106,18 +107,26 @@ function processInputs(now_ts) {
 
 		const backEndPlayer = backEndPlayers[input.id];
 
+		if (backEndPlayer.just_damaged) {
+			if (now_ts - backEndPlayer.damaged_time < 3000) {
+				return;
+			} else {
+				backEndPlayer.just_damaged = false;
+			}
+		}
+
 		// filter input event type
 		if (input.event === 'Stop') {
-			backEndPlayer.dx = 0;
+			backEndPlayer.target_dx = 0.0;
 		} else if (input.event === 'Run_Right') {
-			backEndPlayer.dx = SPEED;
+			backEndPlayer.target_dx = SPEED;
 		} else if (input.event === 'Run_Left') {
-			backEndPlayer.dx = -SPEED;
+			backEndPlayer.target_dx = -SPEED;
 		} else if (input.event === 'Jump' && backEndPlayer.canJump == true) {
 			backEndPlayer.canJump = false;
-			backEndPlayer.dy = -JUMP_FORCE;
+			backEndPlayer.target_dy = -JUMP_FORCE;
 		} else if (input.event === 'Attack') {
-			attack(input);
+			attack(input, now_ts);
 		}
 
 		backEndPlayer.sequenceNumber = input.sequenceNumber;
@@ -132,8 +141,13 @@ function physics(now_ts, delta_time) {
 		const backEndPlayer = backEndPlayers[id];
 
 		// Player movement
+		//backEndPlayer.dx = lerp(backEndPlayer.dx, backEndPlayer.target_dx, 0.5, delta_time);
+		backEndPlayer.target_dy += GRAVITY_CONSTANT * delta_time;
+
+		backEndPlayer.dy = backEndPlayer.target_dy;
+		backEndPlayer.dx = backEndPlayer.just_damaged ? lerp(backEndPlayer.dx, 0, 0.1) : backEndPlayer.target_dx; //lerp(backEndPlayer.dx, backEndPlayer.target_dx, delta_time);
+
 		backEndPlayer.x += backEndPlayer.dx * delta_time;
-		backEndPlayer.dy += GRAVITY_CONSTANT * delta_time;
 		backEndPlayer.y += backEndPlayer.dy * delta_time;
 
 		// floor check
@@ -145,10 +159,6 @@ function physics(now_ts, delta_time) {
 			backEndPlayer.canJump = false;
 		}
 
-		if (backEndPlayer.just_damaged) {
-			backEndPlayer.x_force = lerp(backEndPlayer.x_force, 0, 0.5)
-		}
-
 		// TODO: find a better way to deal with this
 		if (backEndPlayer.server_timestamp !== 0)
 			// if player has just been initialized, don't update time_since_input
@@ -156,7 +166,7 @@ function physics(now_ts, delta_time) {
 	}
 }
 
-function attack(input) {
+function attack(input, now_ts) {
 	const player = backEndPlayers[input.id];
 
 	for (const id in backEndPlayers) {
@@ -165,9 +175,10 @@ function attack(input) {
 		if (check_collision(player.x, player.y, player.width, player.height, enemy_player.x, enemy_player.y, enemy_player.width, enemy_player.height)) {
 			enemy_player.current_health--;
 			enemy_player.just_damaged = true;
+			enemy_player.damaged_time = now_ts;
 			//knockback(enemy_player, player);
 
-			handleHit(player, enemy_player, 10);
+			handleHit(player, enemy_player, 1000);
 
 			if (enemy_player.current_health <= 0) {
 				respawn(id);
@@ -213,6 +224,7 @@ function respawn(id) {
 		sequenceNumber: 0,
 		timestamp: 0,
 		canJump: false,
+		just_damaged: false,
 		current_health: MAX_HEALTH,
 		character_number: 65 * Math.floor(Math.random() * 4),
 		server_timestamp: 0,
@@ -235,8 +247,8 @@ function normalizeVector(vector) {
 
 // Function to apply force to the player being hit
 function applyForce(player, forceVector, forceMagnitude) {
-    player.dx += forceVector.x * forceMagnitude;
-    player.dy += forceVector.y * forceMagnitude;
+    player.dx -= forceVector.x * forceMagnitude;
+    player.dy -= forceVector.y * forceMagnitude;
 }
 
 // Main function to handle the hit
@@ -257,7 +269,6 @@ function handleHit(player1, player2, forceMagnitude) {
 function lerp(start, end, a) {
     return start + (end - start) * a;
 }
-
 
 server.listen(port, () => {
 	console.log(`Example app listening on port http://localhost:${port}`);

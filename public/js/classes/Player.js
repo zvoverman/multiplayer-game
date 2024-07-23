@@ -13,11 +13,14 @@ class Player {
         // initialize other variables
         this.dx = 0;
         this.dy = 0;
+        this.target_dx = this.dx;
+        this.target_dy = this.dy;
         this.timestamp = 0;
         this.sequenceNumber = 0;
         this.canJump = false;
         this.flipX = 0;
         this.current_health = max_health;
+        this.can_move = true;
 
         // Default last direction to right
         this.lastDirection = 1; // 1 for right, -1 for left
