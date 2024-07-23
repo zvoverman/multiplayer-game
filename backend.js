@@ -108,7 +108,7 @@ function processInputs(now_ts) {
 		const backEndPlayer = backEndPlayers[input.id];
 
 		if (backEndPlayer.just_damaged) {
-			if (now_ts - backEndPlayer.damaged_time < 3000) {
+			if (now_ts - backEndPlayer.damaged_time < 1500) {
 				return;
 			} else {
 				backEndPlayer.just_damaged = false;
@@ -179,7 +179,7 @@ function attack(input, now_ts) {
 			enemy_player.damaged_time = now_ts;
 			//knockback(enemy_player, player);
 
-			handleHit(player, enemy_player, 1000);
+			handleHit(player, enemy_player, 5000);
 
 			if (enemy_player.current_health <= 0) {
 				respawn(id);
@@ -199,16 +199,6 @@ function check_collision(ax, ay, aw, ah, bx, by, bw, bh) {
 		return true;
 	}
 	else false;
-}
-
-// Calculate direction between bodies
-// Apply force in that direction
-function knockback(enemy_player, player) {
-	if (enemy_player.x < player.x) {
-		enemy_player.dx = -1000;
-	} else {
-		enemy_player.dx = 1000;
-	}
 }
 
 function respawn(id) {
@@ -248,8 +238,8 @@ function normalizeVector(vector) {
 
 // Function to apply force to the player being hit
 function applyForce(player, forceVector, forceMagnitude) {
-    player.dx = forceVector.x * forceMagnitude;
-    player.dy = forceVector.y * forceMagnitude;
+    player.dx -= forceVector.x * forceMagnitude;
+    player.dy -= forceVector.y * forceMagnitude;
 }
 
 // Main function to handle the hit
