@@ -248,8 +248,8 @@ function normalizeVector(vector) {
 
 // Function to apply force to the player being hit
 function applyForce(player, forceVector, forceMagnitude) {
-    player.dx -= forceVector.x * forceMagnitude;
-    player.dy -= forceVector.y * forceMagnitude;
+    player.dx = forceVector.x * forceMagnitude;
+    player.dy = forceVector.y * forceMagnitude;
 }
 
 // Main function to handle the hit
