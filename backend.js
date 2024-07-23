@@ -179,7 +179,7 @@ function attack(input, now_ts) {
 			enemy_player.damaged_time = now_ts;
 			//knockback(enemy_player, player);
 
-			handleHit(player, enemy_player, 5000);
+			handleHit(player, enemy_player, 2000);
 
 			if (enemy_player.current_health <= 0) {
 				respawn(id);
@@ -239,7 +239,7 @@ function normalizeVector(vector) {
 // Function to apply force to the player being hit
 function applyForce(player, forceVector, forceMagnitude) {
     player.dx -= forceVector.x * forceMagnitude;
-    player.dy -= forceVector.y * forceMagnitude;
+    player.dy -= forceVector.y * forceMagnitude*2;
 }
 
 // Main function to handle the hit
