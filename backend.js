@@ -31,7 +31,7 @@ const CANVAS = {
 }
 
 // debug flags
-let simulate_latency = true;
+let simulate_latency = false;
 
 // world state
 let backEndPlayers = {};
