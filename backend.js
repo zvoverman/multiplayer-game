@@ -172,7 +172,8 @@ function attack(input, now_ts) {
 	for (const id in backEndPlayers) {
 		if (id == input.id) continue; // don't want to hit ourselves
 		const enemy_player = backEndPlayers[id];
-		if (check_collision(player.x, player.y, player.width, player.height, enemy_player.x, enemy_player.y, enemy_player.width, enemy_player.height)) {
+		if (check_collision(player.x-player.width/2, player.y+player.height/2, player.width*2, player.height*2, enemy_player.x, enemy_player.y, enemy_player.width, enemy_player.height)) {
+			console.log("HIT")
 			enemy_player.current_health--;
 			enemy_player.just_damaged = true;
 			enemy_player.damaged_time = now_ts;

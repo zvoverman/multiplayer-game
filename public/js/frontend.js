@@ -197,7 +197,12 @@ function render() {
     if (show_debug_draw) {
         for (const id in backEndPlayerStates) {
             let player = backEndPlayerStates[id]
-            debug_draw(player.x, player.y, player.width, player.height)
+            debug_draw(player.x, player.y, player.width, player.height, 0.5)
+            if (is_mouse_pressed && id === socket.id) {
+                debug_draw(player.x-player.width/2, player.y-player.height/2, player.width*2, player.height*2, 0.5)
+            } else {
+                debug_draw(player.x-player.width/2, player.y-player.height/2, player.width*2, player.height*2, 0.3)
+            }
             velocity_vector_draw(player.x + player.width/2, player.y + player.height/2, player.x + player.dx/2 + player.width/2, player.y + player.dy/4 + player.height/2, "#0000ffaf")
         }
     }
@@ -233,6 +238,7 @@ const keys = {
         pressed: false,
     },
 };
+let is_mouse_pressed = false;
 
 window.addEventListener('mousedown', (event) => {
     if (!frontEndPlayers[socket.id]) return;
@@ -242,6 +248,7 @@ window.addEventListener('mousedown', (event) => {
 
     switch (event.buttons) {
         case 1:
+            is_mouse_pressed = true;
             input.event = 'Attack';
             player.sequenceNumber++;
             input.sequenceNumber = player.sequenceNumber;
@@ -249,6 +256,12 @@ window.addEventListener('mousedown', (event) => {
     }
     if (!input.event) return;
     inputsToProcess.push(input);
+});
+
+window.addEventListener('mouseup', (event) => {
+    if (!frontEndPlayers[socket.id]) return;
+
+    is_mouse_pressed = false;
 });
 
 window.addEventListener('keydown', (event) => {
@@ -360,9 +373,9 @@ window.addEventListener('keyup', (event) => {
     inputsToProcess.push(input);
 });
 
-function debug_draw(x, y, width, height) {
+function debug_draw(x, y, width, height, alpha) {
     c.beginPath();
-    c.fillStyle = `rgba(0, 0, 0, 0.5)`;
+    c.fillStyle = `rgba(0, 0, 0, ${alpha})`;
     c.fillRect(x, y, width, height);
     c.restore();
 }
