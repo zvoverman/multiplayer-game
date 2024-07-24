@@ -141,8 +141,8 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
                 timestep = (timestamp_now - (input.timestamp + backEndPlayer.time_since_input)) / 1000 - delta_time;
             }
 
-            player.target_dx = backEndPlayer.dx;
-            player.target_dy = backEndPlayer.dy;
+            player.dx = backEndPlayer.dx;
+            player.dy = backEndPlayer.dy;
         } else {
             // Not processed by the server yet. Re-apply all of it.
             if (playerInputs[j + 1]) {
@@ -152,11 +152,23 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
             }
 
             if (input.event === 'Stop') {
-                player.target_dx = 0.0;
+                if (player.dx < 0) {
+                    player.dx += GROUND_FRICTION * timestep * 2;
+                    if (player.dx >= 0) {
+                        player.dx = 0;
+                    }
+                } else if (player.dx > 0) {
+                    player.dx -= GROUND_FRICTION * timestep * 2;
+                    if (player.dx <= 0) {
+                        player.dx = 0;
+                    }
+                } else {
+                    player.dx = 0;
+                }
             } else if (input.event === 'Run_Right') {
-                player.target_dx = SPEED;
+                player.dx = SPEED;
             } else if (input.event === 'Run_Left') {
-                player.target_dx = -SPEED;
+                player.dx = -SPEED;
             } else if (input.event === 'Jump') {
                 player.dy = -JUMP_FORCE;
             }
@@ -168,7 +180,8 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
 
 function move_player(player, timestep) {
 
-    player.x += timestep * player.target_dx
+    // TODO: Verlet integration with x values??
+    player.x += timestep * player.dx
 
     // Verlet integration
     player.y += timestep * (player.dy + timestep * GRAVITY_CONSTANT / 2)

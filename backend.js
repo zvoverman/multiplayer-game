@@ -16,8 +16,10 @@ app.get('/', (req, res) => {
 
 // player constants
 const SPEED = 600;
-const JUMP_FORCE = 1000;
-const GRAVITY_CONSTANT = 3000;
+const JUMP_FORCE = 1200;
+const GRAVITY_CONSTANT = 2800;
+const GROUND_FRICTION = 1000;
+const AIR_FRICTION = 1000;
 const MAX_HEALTH = 3;
 
 // player dimensions
@@ -31,7 +33,7 @@ const CANVAS = {
 }
 
 // debug flags
-let simulate_latency = false;
+let simulate_latency = true;
 
 // world state
 let backEndPlayers = {};
@@ -62,8 +64,7 @@ io.on('connection', (socket) => {
 		time_since_input: 0,
 		just_damaged: false,
 		damaged_time: 0,
-		x_force: 0,
-		y_force: 0
+		state: ""
 	};
 
 	// cleanly remove player on socket disconnect
@@ -74,7 +75,7 @@ io.on('connection', (socket) => {
 	});
 
 	socket.on('sendInput', (input) => {
-		const delay = simulate_latency ? 200 : 0;
+		const delay = simulate_latency ? 400 : 0;
 		setTimeout(() => {
 			inputQueue.push(input);
 		}, delay);
@@ -117,7 +118,7 @@ function processInputs(now_ts) {
 
 		// filter input event type
 		if (input.event === 'Stop') {
-			backEndPlayer.target_dx = 0.0;
+			backEndPlayer.target_dx = backEndPlayer.target_dx;
 		} else if (input.event === 'Run_Right') {
 			backEndPlayer.target_dx = SPEED;
 		} else if (input.event === 'Run_Left') {
@@ -131,6 +132,7 @@ function processInputs(now_ts) {
 
 		backEndPlayer.sequenceNumber = input.sequenceNumber;
 		backEndPlayer.timestamp = input.timestamp; // client pressed input timestamp
+		backEndPlayer.state = input.event;
 		backEndPlayer.server_timestamp = now_ts;   // server received input timestamp
 	}
 }
@@ -141,11 +143,25 @@ function physics(now_ts, delta_time) {
 		const backEndPlayer = backEndPlayers[id];
 
 		// Player movement
-		//backEndPlayer.dx = lerp(backEndPlayer.dx, backEndPlayer.target_dx, 0.5, delta_time);
 		backEndPlayer.target_dy += GRAVITY_CONSTANT * delta_time;
+		if (backEndPlayer.state === 'Stop' && backEndPlayer.dx != 0.0) {
+			//console.log("friction")
+			if (backEndPlayer.dx > 0) {
+				backEndPlayer.target_dx -= GROUND_FRICTION * delta_time;
+				if (backEndPlayer.target_dx < 0) {
+					backEndPlayer.target_dx = 0;
+				}
+			} else if (backEndPlayer.dx < 0) {
+				backEndPlayer.target_dx += GROUND_FRICTION * delta_time;
+				if (backEndPlayer.target_dx > 0) {
+					backEndPlayer.target_dx = 0;
+				}
+			}
+			console.log(backEndPlayer.target_dx)
+		}
 
 		backEndPlayer.dy = backEndPlayer.target_dy;
-		backEndPlayer.dx = backEndPlayer.just_damaged ? lerp(backEndPlayer.dx, 0, 0.1) : backEndPlayer.target_dx; //lerp(backEndPlayer.dx, backEndPlayer.target_dx, delta_time);
+		backEndPlayer.dx = backEndPlayer.target_dx;
 
 		backEndPlayer.x += backEndPlayer.dx * delta_time;
 		backEndPlayer.y += backEndPlayer.dy * delta_time;
