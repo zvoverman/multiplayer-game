@@ -9,10 +9,10 @@ const socket = io();
 
 // player constants
 const SPEED = 600;
-const JUMP_FORCE = 1000;
-const GRAVITY_CONSTANT = 3000;
+const JUMP_FORCE = 1200;
+const GRAVITY_CONSTANT = 2800;
 const GROUND_FRICTION = 1000;
-const AIR_FRICTION = 500;
+const AIR_FRICTION = 1000;
 
 // track state
 let frontEndPlayers = {};
@@ -129,6 +129,7 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
         let input = playerInputs[j];
 
         let timestep = 0;
+        let x_friction = 0;
         if (input.sequenceNumber < backEndPlayer.sequenceNumber) {
             // Already processed. Its effect is already taken into account into the world update we just got, so we can drop it.
             playerInputs.shift();
@@ -143,6 +144,18 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
 
             player.dx = backEndPlayer.dx;
             player.dy = backEndPlayer.dy;
+
+            // if (input.event === 'Stop' && player.dx != 0) {
+            //     if (player.dx < 0) {
+            //         x_friction = GROUND_FRICTION;
+            //         // player.dx = checkFriction(-SPEED, -SPEED + timestep * x_friction);
+            //         // player.dx === 0 ? x_friction = 0 : x_friction = GROUND_FRICTION;
+            //     } else if (player.dx > 0) {
+            //         x_friction = -GROUND_FRICTION;
+            //         // player.dx = checkFriction(SPEED, SPEED + timestep * x_friction);
+            //         // player.dx === 0 ? x_friction = 0 : x_friction = -GROUND_FRICTION;
+            //     }
+            // }
         } else {
             // Not processed by the server yet. Re-apply all of it.
             if (playerInputs[j + 1]) {
@@ -151,19 +164,11 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
                 timestep = (timestamp_now - input.timestamp) / 1000;
             }
 
-            if (input.event === 'Stop') {
+            if (input.event === 'Stop' && player.dx != 0) {
                 if (player.dx < 0) {
-                    player.dx += GROUND_FRICTION * timestep * 2;
-                    if (player.dx >= 0) {
-                        player.dx = 0;
-                    }
+                    x_friction = GROUND_FRICTION;
                 } else if (player.dx > 0) {
-                    player.dx -= GROUND_FRICTION * timestep * 2;
-                    if (player.dx <= 0) {
-                        player.dx = 0;
-                    }
-                } else {
-                    player.dx = 0;
+                    x_friction = -GROUND_FRICTION;
                 }
             } else if (input.event === 'Run_Right') {
                 player.dx = SPEED;
@@ -173,15 +178,23 @@ function reconciliate(player, backEndPlayer, timestamp_now, delta_time) {
                 player.dy = -JUMP_FORCE;
             }
         }
-        move_player(player, timestep)
+
+        // Override move_player() if there is FRICTION of any sort
+        move_player(player, timestep, x_friction)
+        console.log(player.x)
         j++;
     }
 }
 
-function move_player(player, timestep) {
-
-    // TODO: Verlet integration with x values??
-    player.x += timestep * player.dx
+let friction_timestep = null;
+let friction_lock = false;
+function move_player(player, timestep, x_friction) {
+    // ONLY A FORCE WHEN INPUT == STOP
+    x_friction = GROUND_FRICTION;
+    isFrictionOver(player.dx, player.dx + timestep * x_friction, timestep);
+    const x_step = friction_timestep ? friction_timestep : timestep;
+    player.x += x_step * (player.dx + x_step * x_friction / 2)
+    player.dx += x_step * x_friction;
 
     // Verlet integration
     player.y += timestep * (player.dy + timestep * GRAVITY_CONSTANT / 2)
@@ -200,6 +213,18 @@ function checkGravity(player) {
         player.y = canvas.height - player.height;
     } else {
         player.canJump = false;
+    }
+}
+
+function isFrictionOver(dx_init, dx_now, timestep) {
+    if (friction_lock) return false;
+    if ((dx_init < 0 && dx_now > 0) || (dx_init > 0 && dx_now < 0)) {
+        console.log('friction turn-over')
+        friction_timestep = timestep;
+        friction_lock = true;
+        return true;
+    } else {
+        return false;
     }
 }
 
@@ -303,6 +328,8 @@ window.addEventListener('keydown', (event) => {
                 player.sequenceNumber++;
                 input.sequenceNumber = player.sequenceNumber;
                 keys.a.pressed = true;
+                friction_timestep = null;
+                friction_lock = false;
             }
             break;
 
@@ -314,6 +341,8 @@ window.addEventListener('keydown', (event) => {
                 player.sequenceNumber++;
                 input.sequenceNumber = player.sequenceNumber;
                 keys.d.pressed = true;
+                friction_timestep = null;
+                friction_lock = false;
             }
             break;
 

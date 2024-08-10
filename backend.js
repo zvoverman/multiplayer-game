@@ -75,7 +75,7 @@ io.on('connection', (socket) => {
 	});
 
 	socket.on('sendInput', (input) => {
-		const delay = simulate_latency ? 400 : 0;
+		const delay = simulate_latency ? 1800 : 0;
 		setTimeout(() => {
 			inputQueue.push(input);
 		}, delay);
@@ -118,6 +118,7 @@ function processInputs(now_ts) {
 
 		// filter input event type
 		if (input.event === 'Stop') {
+			if (backEndPlayer.dx)
 			backEndPlayer.target_dx = backEndPlayer.target_dx;
 		} else if (input.event === 'Run_Right') {
 			backEndPlayer.target_dx = SPEED;
@@ -157,7 +158,6 @@ function physics(now_ts, delta_time) {
 					backEndPlayer.target_dx = 0;
 				}
 			}
-			console.log(backEndPlayer.target_dx)
 		}
 
 		backEndPlayer.dy = backEndPlayer.target_dy;
